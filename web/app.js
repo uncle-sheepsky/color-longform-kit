@@ -33,7 +33,7 @@ async function takeImage(url, srcName, preset = null) {
     if (!S.PXF) S.PXF = await loadPXF();
     const im = await loadImage(url);
     const A = await analyze(im, s => status($('st1'), s + '…'));
-    S.A = A; S.srcName = srcName; S.keyOrder = [0, 1, 2]; S.colors = {}; S.partNames = ['', '', '']; S.eyes = null; S.eyePick = [];
+    S.A = A; S.srcName = srcName; S.keyOrder = [0, 1, 2]; S.colors = {}; S.partNames = ['', '', '']; S.eyes = null; S.eyePick = []; S.isSample = !!(preset && preset.sample);
     $('name').value = preset ? preset.name : nameFrom(srcName); $('title1').value = '{name}'; $('title2').value = 'IN COLOR';
     if (preset) S.partNames = presetParts(A, preset.parts);
     status($('st1'), `그림 읽음 · 층 크기 ${A.w}×${A.h}`);
@@ -54,8 +54,8 @@ const drop = $('drop');
 ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) takeImage(URL.createObjectURL(f), f.name); });
-$('momo').addEventListener('click', () => takeImage(new URL('momo.png', import.meta.url).href, 'momo.png',
-  { name: 'MOMO', parts: [{ name: 'SCARF', c: [222, 58, 66] }, { name: 'COAT', c: [52, 158, 168] }, { name: 'CHEEK', c: [248, 164, 170] }] }));
+$('sample').addEventListener('click', () => takeImage(new URL('duru.png', import.meta.url).href, 'duru.png',   // 예시 = 두루(CC0 아님 · 시험용 — NOTICE)
+  { name: 'DURU', sample: true, parts: [{ name: 'SCARF', c: [237, 57, 59] }, { name: 'COAT', c: [203, 119, 42] }, { name: 'CHEEK', c: [253, 161, 150] }] }));
 
 // ── 2) 색 · 이름 ──────────────────────────────────────────────────────────────
 const curColor = k => S.colors[k] || (k.startsWith('k') ? S.A.pal0['k' + (S.keyOrder[+k[1] - 1] + 1)] : S.A.pal0[k]);
@@ -216,8 +216,10 @@ $('go').addEventListener('click', async () => {
       cap.innerHTML = `<span>${fn} · ${(blob.size / 1048576).toFixed(1)}MB${blob.dropped ? ` · 실시간 녹화 중 빠진 프레임 ${blob.dropped}` : ''}</span>`; cap.prepend(a);
       fig.append(v, cap); $('results').append(fig);
     }
-    status($('st4'), `완성 · ${((performance.now() - t0) / 1000).toFixed(0)}초 걸림. 소리를 켜고 끝까지 한 번 보세요 — 내 캐릭터답게 보이는지는 직접 보고 판정하는 게 가장 정확합니다.`);
-    $('bar').value = $('bar').max; $('caption').value = caption(); $('share').hidden = false;
+    const took = `완성 · ${((performance.now() - t0) / 1000).toFixed(0)}초 걸림. `;
+    $('bar').value = $('bar').max;
+    if (S.isSample) status($('st4'), took + '두루로 만든 영상은 시험용입니다(다시 배포 · 상업적 이용 불가). 올릴 영상은 내 캐릭터 그림을 넣어 만들어 주세요.');
+    else { status($('st4'), took + '소리를 켜고 끝까지 한 번 보세요 — 내 캐릭터답게 보이는지는 직접 보고 판정하는 게 가장 정확합니다.'); $('caption').value = caption(); $('share').hidden = false; }
   } catch (e) { console.error(e); status($('st4'), e.name === 'AbortError' ? '멈췄습니다.' : '만들지 못했습니다: ' + (e.message || e), e.name !== 'AbortError'); }
   finally { S.busy = false; S.rendering = false; S.abort = null; $('go').disabled = false; $('stop').hidden = true; enable('s1', true); enable('s2', true); enable('s3', true); }
 });

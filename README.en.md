@@ -12,6 +12,7 @@ A 20-second vertical short with the same story is in [color-short-kit](https://g
 There is also a [web page](https://uncle-sheepsky.github.io/color-longform-kit/web/) that needs no install. Drop in one transparent PNG. It pulls the colors out of your drawing and shows you how it split them, and you can change them there. Then it renders the video right in the browser tab with the same animation and music. Your image stays on your computer.
 - You can download the full 80 seconds at 1920×1080. The vertical cut runs from the drop to the end (34.7 seconds) and comes as 1080×1920 for vertical feeds like Shorts and Reels, or as 1080×1350 for an Instagram post.
 - Use a recent Chrome or Edge. On the computer this kit was built on, the 16:9 and 9:16 videos took about 40 seconds together. Details and known limits are in [`web/README.md`](web/README.md) (in Korean).
+- The 「두루로 해 보기」 button (try it with Duru) runs the page with the channel's own character first. That image (`web/duru.png`) is for trying the page only and is not CC0. See [`NOTICE`](NOTICE).
 - For several poses, or for the check report, use the Python version below.
 
 If you use an AI coding tool (Claude Code, Codex and so on), give it this repository and paste one of the prompts below. The steps the AI follows, and what it checks after each one, are in [`AGENTS.md`](AGENTS.md). That file is in Korean. AI tools read it fine.
@@ -100,6 +101,7 @@ How it was made is in [`docs/방법.md`](docs/방법.md): the beat map, how scre
 - None of the checks can tell you whether the result looks like your character, or whether picture and music fit together. Watch it to the end with the sound on.
 
 ## License
-Everything in this repository is CC0 1.0. Use it however you like. The rights to the character drawings and fonts you add stay with you.
+Everything in this repository is CC0 1.0 except one file. Use it however you like. The rights to the character drawings and fonts you add stay with you.
+The exception is `web/duru.png`, the Duru example on the web page. Duru is the character of the channel 아낌없이 주는 두루. You can use that image to try the web page and for nothing else: no redistribution and no commercial use, and the same goes for videos made with it. The Duru drawing was made with GPT. Details are in [`NOTICE`](NOTICE).
 GSAP is not stored here. `npm install` fetches it, and it comes with its own license. The VSCO 2 Community Edition samples are CC0.
 The screen code and the music were made with Claude (Anthropic).
