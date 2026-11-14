@@ -1,0 +1,356 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WHAT YOUR COLOR. — 7~8구간(끝 · 196~240박)</title>
+<style>html, body { margin: 0; background: #000; } #cv { display: block; width: 1920px; height: 1080px; }</style>
+<canvas id="cv" width="1920" height="1080"></canvas>
+<script src="../node_modules/gsap/dist/gsap.min.js"></script>
+<script src="../build/kit.js"></script>
+<script>
+/* ── 7~8구간(이 페이지 안쪽 박 212~256 · 440프레임 · 1:05.3~1:20) — 끝 화면(썸네일과 같은 그림)이 만들어져 가는 과정 ──────────
+   시선 경로: 주황 범람 → 오른쪽 위 해로 응축(물방울이 해로 빨려 감) → 한 방울이 위를 건너 왼쪽 위 모서리에 튀어 망점이 맺힘(원 → 원)
+             → 물결 마루가 왼쪽 아래에서 오른쪽으로 달려 캐릭터 발치로 → 빛이 경계를 따라 위에서 아래로 그어지며 오른쪽으로 색이 번짐
+             → 색이 경계 너머 왼쪽으로 스며들려다 물러남(긴장) → 웅크림 → 「짝」 손에서 동심원 · 색종이가 위 · 오른쪽으로 → 제자리에 앉음
+             → 박수에서 튄 씨앗이 떠 있다가 글자 자리로 → 글자가 왼쪽 → 오른쪽으로 쫀득하게(묶음끼리 시간차로 맞물림) → 모든 떨림이 잦아들며 끝 화면에서 멈춤.
+   호응: 사건(박 · 박수 · 착지)마다 충격이 생기고, 요소마다 「거리 / 속도」만큼 늦게 닫힌 형태 스프링으로 응답(프레임의 순수 함수 · 어느 프레임으로 건너뛰어도 같음).
+   빛 = 미리 구운 가우시안 조각 · 브라우저 blur 없음 · imageSmoothingQuality low · 캔버스를 자기 자신에서 읽지 않음. */
+const G = window.GEO, W = 1920, H = 1080, FPB = 10, B0 = 212, B1 = 256, N = (B1 - B0) * FPB, CLAP = 224, SPB = 1 / 3;
+const cv = document.getElementById('cv'), g = cv.getContext('2d', { willReadFrequently: true });
+gsap.ticker.lagSmoothing(0);
+const E = n => gsap.parseEase(n);
+const ez = { p2o: E('power2.out'), p3o: E('power3.out'), p2i: E('power2.in'), p2io: E('power2.inOut'), p3io: E('power3.inOut'), expoIO: E('expo.inOut'), sine: E('sine.inOut'), backO: E('back.out(2.4)') };
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x)), lerp = (a, b, p) => a + (b - a) * p, prog = (x, a, b) => clamp((x - a) / (b - a));
+function hash01(i) { let x = (i + 1) * 747796405 + 2891336453; x = (x ^ (x >>> 16)) >>> 0; x = Math.imul(x, 2246822519) >>> 0; x = (x ^ (x >>> 13)) >>> 0; return x / 4294967296; }
+const C = G.colors, rgb = (a, al = 1) => `rgba(${a[0]},${a[1]},${a[2]},${al})`, SL = G.streak.slope, X0 = G.streak.x_at_y0, TAU = Math.PI * 2;
+const D = G.end_pose, K = G.clap_pose, HANDS = G.anchors.hands, SUN = G.sun;
+const KS = [224, 225.5, 226, 227, 228, 229.5, 230, 231, 232, 233.5, 234, 235, 236, 237.5, 238, 239, 240];   // 박수 뒤 북이 치는 박(안쪽 박) — 잔떨림이 이 박마다 다시 튐
+const settle = b => 1 - ez.p2io(prog(b, 240, 252));          // 끝: 모든 잔떨림이 글자와 함께 0 으로 → 마지막 프레임 = 끝 화면
+
+/* ── 닫힌 형태 스프링(충격 응답 · 계단 응답) ── t = 초 */
+function imp(t, f = 2.2, z = 0.32) { if (t <= 0) return 0; const w = TAU * f, wd = w * Math.sqrt(1 - z * z); return Math.exp(-z * w * t) * Math.sin(wd * t); }
+function stp(t, f = 2.0, z = 0.45) { if (t <= 0) return 0; const w = TAU * f, wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t)); }
+/* 충격장: 캐릭터(메인)의 사건 + 그 밖의 사건. 응답 = Σ 세기 · imp(지금 − 사건 시각 − 거리/속도) */
+const EV = [];
+for (const k of KS) if (k >= CLAP) EV.push({ b: k, s: 0.35, p: HANDS, kind: 'kick' });
+EV.push({ b: CLAP, s: 1.0, p: HANDS, kind: 'clap' });
+EV.push({ b: 219.6, s: 0.5, p: [1450, 960], kind: 'wave' });
+EV.push({ b: 216, s: 0.6, p: [210, 130], kind: 'splash' });
+function field(b, p, v = 1400, f = 2.2, z = 0.32, kinds = null) {
+  let r = 0;
+  for (const e of EV) { if (kinds && !kinds.includes(e.kind)) continue; const t = (b - e.b) * SPB - Math.hypot(p[0] - e.p[0], p[1] - e.p[1]) / v; if (t > 0 && t < 4) r += e.s * imp(t, f, z); }
+  return r;
+}
+
+const IMG = {};
+function loadOnce(src) { return new Promise((res, rej) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0); res(c); }; im.onerror = () => rej(new Error(src)); im.src = src; }); }
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d', { willReadFrequently: true })]; };
+const [DK, dk] = mk(K.w, K.h), [DT, dt] = mk(D.size[0], D.size[1]), [ST, st] = mk(1000, 900), [LT, lt] = mk(260, 260);
+function ctxReset(c) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'low'; c.filter = 'none'; }
+function resetCtx() { ctxReset(g); g.lineCap = 'round'; g.lineJoin = 'round'; }
+
+/* ── 경계(흰 빛줄) ── */
+const bx = (x0, y) => x0 + SL * y;
+const DRAW = [220, 221.6];                                   // 빛이 경계를 위 → 아래로 긋는 박
+const drawnY = b => lerp(-60, H + 60, ez.p2io(prog(b, DRAW[0], DRAW[1])));
+/* 스며듦(부드러운 글리치): 경계 왼쪽으로 색이 번지려다 물러남 · 오른쪽(색 쪽)으로는 아주 조금 · 4~7프레임 동안 자라고 줄어듦 */
+const SEEP = [[220.9, 6, 0.3], [221.5, 5, 0.35], [222, 7, 0.55], [222.6, 5, 0.5], [223, 7, 0.75], [223.4, 6, 0.85], [CLAP + 0.02, 4, 0.6], [228.2, 6, 0.3], [231, 7, 0.26], [234, 6, 0.22], [237.2, 6, 0.16], [240.5, 5, 0.1]];
+function seepAt(f) {
+  for (const [b, n, k] of SEEP) { const f0 = Math.round((b - B0) * FPB); if (f >= f0 && f < f0 + n) { const u = (f - f0 + 0.5) / n; return { k, seed: f0, amp: Math.pow(Math.sin(Math.PI * u), 0.8) }; } }
+  return null;
+}
+function seeps(sp) {
+  const out = [], n = Math.round(5 + 9 * sp.k);
+  for (let i = 0; i < n; i++) {
+    const h1 = hash01(sp.seed * 17 + i), h2 = hash01(sp.seed * 29 + i * 3), h3 = hash01(sp.seed * 41 + i * 7);
+    const y = 150 + Math.floor(h1 * 92) * 8, h = 8 * (2 + Math.floor(h2 * 4));
+    const left = h3 < 0.86;                                  // 대부분 왼쪽(색이 선화 쪽으로) · 오른쪽(선화가 색 쪽으로)은 드물고 짧게
+    const len = left ? (30 + 220 * sp.k * hash01(sp.seed * 53 + i)) : (6 + 10 * sp.k);
+    out.push({ y, h, off: (left ? -1 : 1) * len * sp.amp });
+  }
+  return out;
+}
+/* 캐릭터 합성(로컬 캔버스): 선화 + 경계 오른쪽 색(위에서부터 그어진 만큼 · 앞머리 물결) + 스며듦 */
+function composeChar(c, lineIm, fullIm, ox, oy, b, sp, splitIm, done) {
+  const w = c.canvas.width, h = c.canvas.height; ctxReset(c); c.clearRect(0, 0, w, h);
+  const lx = y => bx(X0, y + oy) - ox;                        // 로컬 경계 x(로컬 y)
+  if (done && splitIm) c.drawImage(splitIm, 0, 0);
+  else {
+    c.drawImage(lineIm, 0, 0);
+    const yd = drawnY(b) - oy;
+    if (yd > -60) {                                           // 그어진 데까지: 경계 오른쪽으로 색이 번짐(앞쪽은 물결 · 시간차)
+      c.save(); c.beginPath(); c.moveTo(lx(-10), -10);
+      for (let yy = -10; yy <= Math.min(h + 10, yd); yy += 14) { const age = (yd - yy) / 320; const reach = 1200 * ez.p3o(clamp(age)); c.lineTo(lx(yy) + reach * (1 + 0.08 * Math.sin(yy / 37)), yy); }
+      for (let yy = Math.min(h + 10, yd); yy >= -10; yy -= 14) c.lineTo(lx(yy), yy);
+      c.closePath(); c.clip(); c.drawImage(fullIm, 0, 0); c.restore();
+    }
+  }
+  if (!sp) return;
+  for (const s of seeps(sp)) {                               // 띠마다: 작은 캔버스에 색(또는 선화)을 그리고 끝으로 갈수록 옅게 · 위아래 가장자리 부드럽게
+    const xb = lx(s.y + s.h / 2), x1 = Math.min(xb, xb + s.off) - 6, x2 = Math.max(xb, xb + s.off) + 6, bw = Math.ceil(x2 - x1), bh = s.h + 6;
+    if (bw < 4) continue;
+    ctxReset(st); st.clearRect(0, 0, bw, bh);
+    st.drawImage(s.off < 0 ? fullIm : lineIm, x1, s.y - 3, bw, bh, 0, 0, bw, bh);
+    st.globalCompositeOperation = 'destination-in';
+    const gx = st.createLinearGradient(s.off < 0 ? 0 : bw, 0, s.off < 0 ? bw : 0, 0);
+    gx.addColorStop(0, 'rgba(0,0,0,0)'); gx.addColorStop(0.55, 'rgba(0,0,0,0.75)'); gx.addColorStop(1, 'rgba(0,0,0,1)');
+    st.fillStyle = gx; st.fillRect(0, 0, bw, bh);
+    const gy = st.createLinearGradient(0, 0, 0, bh); gy.addColorStop(0, 'rgba(0,0,0,0)'); gy.addColorStop(0.3, 'rgba(0,0,0,1)'); gy.addColorStop(0.7, 'rgba(0,0,0,1)'); gy.addColorStop(1, 'rgba(0,0,0,0)');
+    st.fillStyle = gy; st.fillRect(0, 0, bw, bh);
+    c.save(); c.globalAlpha = 0.9; c.drawImage(ST, 0, 0, bw, bh, x1 + (s.off < 0 ? s.off * 0.12 : 0), s.y - 3, bw, bh); c.restore();
+  }
+}
+/* 캐릭터를 젤리처럼(가로 띠마다 휨 · 숨 · 웅크림) — 고정점 = 발치 가운데 */
+function drawJelly(src, x, y, w, h, P) {
+  const bxm = x + w / 2, by = y + h, n = 48, sh = h / n;
+  for (let i = 0; i < n; i++) {
+    const v = 1 - (i + 0.5) / n;                            // 0 = 발치 · 1 = 정수리
+    const sy = 1 - P.sq, sx = 1 + P.sq * 0.8 + P.bulge * Math.sin(Math.PI * v);
+    const dx = P.sway * v * v + P.shiver * Math.sin(i * 1.7 + P.ph);
+    const yy0 = i * sh, top = by - (h - yy0) * sy;
+    g.drawImage(src, 0, yy0, w, sh + 1, bxm - (w / 2) * sx + dx, top, w * sx, (sh + 1) * sy);
+  }
+}
+function charParams(b, f) {
+  const s = settle(b);
+  let sq = 0.008 * Math.sin(TAU * (b - B0) / 4) * s;        // 숨(한 마디에 한 번)
+  sq += 0.035 * ez.sine(prog(b, 223, 223.9)) * (b < CLAP ? 1 : 0);                 // 웅크림
+  if (b >= CLAP) sq += -0.05 * imp((b - CLAP) * SPB, 1.6, 0.28) * 1.4 + field(b, HANDS, 9e9, 2.6, 0.4, ['kick']) * 0.03;
+  for (const lb of LET_B) if (b >= lb) sq += 0.006 * imp((b - lb) * SPB - 0.18, 2.4, 0.4);  // 글자가 내려앉을 때 캐릭터가 작게 끄덕
+  const sway = (6 * Math.sin(TAU * (b - B0) / 8 + 0.6) * s) + (b >= CLAP ? 14 * imp((b - CLAP) * SPB - 0.05, 1.3, 0.22) : 0);
+  const sp = seepAt(f), shiver = sp && b < CLAP ? 1.6 * sp.amp * sp.k : 0;
+  return { sq: sq * (b >= 240 ? s : 1), sway: sway, shiver, ph: f * 0.9, bulge: b >= CLAP ? 0.012 * Math.max(0, imp((b - CLAP) * SPB, 1.6, 0.28)) : 0 };
+}
+
+/* ── 바탕: 범람 → 해(가장자리 출렁 · 물방울이 빨려 감) · 물결(마루가 달림) ── */
+function sunPath(R, b) {
+  const amp = 0.035 * Math.exp(-Math.max(0, (b - 213.2) * SPB) * 2.2), n = 96;
+  g.beginPath();
+  for (let i = 0; i <= n; i++) { const a = i / n * TAU, rr = R * (1 + amp * (Math.sin(3 * a + b * 3) * 0.6 + Math.sin(5 * a - b * 4.2) * 0.4)); const x = SUN.cx + Math.cos(a) * rr, y = SUN.cy + Math.sin(a) * rr; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+  g.closePath();
+}
+const DROPS = Array.from({ length: 9 }, (_, i) => ({ x: 140 + 1200 * hash01(i + 3), y: 120 + 760 * hash01(i + 5), r: 16 + 30 * hash01(i + 7), d: 0.15 + 0.6 * hash01(i + 9) }));
+function bgLayers(b) {
+  g.drawImage(IMG.bg_base, 0, 0);
+  // 해: 범람(넓은 출렁 원)이 응축 → 해 층 그대로. 그 뒤엔 박에 맞춰 아주 작게 숨
+  const q = prog(b, 212, 214);
+  if (q < 1) { const R = lerp(2300, SUN.r * 1.02, ez.expoIO(q)) + SUN.r * 0.06 * imp((b - 213.4) * SPB, 1.6, 0.3); g.fillStyle = rgb(C.orange); sunPath(R, b); g.fill(); }
+  const sb = 1 + 0.006 * field(b, [SUN.cx, SUN.cy], 1600, 1.8, 0.35) * settle(b) + 0.012 * Math.max(0, imp((b - 213.6) * SPB, 1.4, 0.3));
+  g.save(); g.translate(SUN.cx, SUN.cy); g.scale(sb, sb); g.translate(-SUN.cx, -SUN.cy); g.drawImage(IMG.bg_sun, 0, 0); g.restore();
+  const ga = 1 - ez.p2io(prog(b, 220, 222.5));                 // 빛이 경계를 긋기 전까지는 온전한 단색 해 — 빛이 지나가며 빛 번짐이 해 가장자리에 앉음
+  if (ga > 0) { g.save(); g.globalAlpha = ga; g.fillStyle = rgb(C.orange); sunPath(SUN.r * sb, Math.max(b, 216)); g.fill(); g.restore(); }
+  for (const dp of DROPS) {                                   // 범람이 빠지며 남은 주황 방울이 차례로 해로 빨려 들어감
+    const t0 = 213 + dp.d * 1.6, u = prog(b, t0, t0 + 1.2); if (u >= 1 || b < 212.4) continue;
+    const e = ez.p2i(u), tx = SUN.cx - SUN.r * 0.7, x = lerp(dp.x, tx, e), y = lerp(dp.y, SUN.cy, e), r = dp.r * (1 - e * 0.85) * stp((b - 212.4) * SPB, 3, 0.5);
+    g.fillStyle = rgb(C.orange); g.beginPath(); g.ellipse(x, y, r * (1 + e * 0.8), r * (1 - e * 0.3), Math.atan2(SUN.cy - dp.y, tx - dp.x), 0, TAU); g.fill();
+  }
+  // 물결: 층을 세로 띠(4px)로 나눠 띠마다 높이를 바꿈 — 마루가 왼쪽에서 달려와 앉고, 박마다 잔물결 · 쉬면 정확히 제자리
+  if (b < 217.6) return;
+  const u = prog(b, 217.6, 219.6), crestX = lerp(-300, 1600, ez.p2o(u)), st_ = settle(b), cw = 4;
+  for (let x = 0; x < W; x += cw) {
+    const rise = ez.p2o(clamp((crestX - x) / 700 + 1));
+    const crest = 30 * Math.exp(-(((x - crestX) / 130) ** 2)) * (1 - u * 0.7);
+    const rip = 7 * field(b, [x, 900], 1100, 2.4, 0.3, ['wave', 'kick', 'clap']) * st_;
+    const dy = (1 - rise) * 520 - crest - rip;
+    if (dy > 518) continue;
+    g.drawImage(IMG.bg_wave, x, 0, cw, H, x, dy, cw, H);
+  }
+}
+/* 망점: 튄 방울 자리에서 하나씩 맺힘(거리만큼 늦게 · 출렁 넘침) → 박수 · 박에 반짝이는 물결이 지나감 */
+function dots(b) {
+  if (b < 216) return;
+  const sp = [210, 130], st_ = settle(b);
+  for (const [x0, y0, w, h, cx, cy] of G.dot_boxes) {
+    const d = Math.hypot(cx - sp[0], cy - sp[1]), t = (b - 216) * SPB - d / 900;
+    if (t <= 0) continue;
+    const k = stp(t, 2.6, 0.38) * (1 + 0.22 * field(b, [cx, cy], 1400, 2.8, 0.35, ['clap', 'kick']) * st_);
+    if (k <= 0.01) continue;
+    g.drawImage(IMG.dots, x0, y0, w, h, cx - (cx - x0) * k, cy - (cy - y0) * k, w * k, h * k);
+  }
+}
+/* 튀어 가는 방울(해 → 왼쪽 위 모서리) — 망점으로 시선을 옮기는 운반자 */
+function carrierDrop(b) {
+  const u = prog(b, 214.9, 216); if (u <= 0 || u >= 1) return;
+  const e = ez.p2io(u);
+  for (let k = 5; k >= 0; k--) { const ee = clamp(e - k * 0.03), xx = lerp(SUN.cx - SUN.r * 0.55, 210, ee), yy = lerp(SUN.cy - SUN.r * 0.65, 130, ee) - 90 * Math.sin(Math.PI * ee); g.fillStyle = rgb(C.orange, 1 - k * 0.15); g.beginPath(); g.arc(xx, yy, 20 - k * 2.6, 0, TAU); g.fill(); }
+}
+/* ── 빛 ── */
+function glow(x, y, size, a) { const im = IMG.glow; if (!im || a <= 0) return; g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = clamp(a); g.drawImage(im, x - size / 2, y - size / 2, size, size); g.restore(); }
+function streak(b, f) {
+  if (b < DRAW[0]) return;
+  const y1 = drawnY(b), done = b >= CLAP, fade = done ? 1 - ez.p2o(prog(b, CLAP, CLAP + 4)) : 1;
+  const sp = seepAt(f);
+  // 가는 선: 위에서 아래로 그어짐 · 박수 뒤 사라짐(끝 화면에는 가는 선이 없음)
+  if (fade > 0) { g.save(); g.strokeStyle = `rgba(255,253,245,${0.85 * fade})`; g.lineWidth = 5; g.beginPath(); g.moveTo(bx(X0, -20), -20); g.lineTo(bx(X0, Math.min(y1, H + 20)), Math.min(y1, H + 20)); g.stroke(); g.restore(); }
+  // 긋는 빛머리 + 지나간 자리의 번짐
+  if (b < DRAW[1] + 0.3) glow(bx(X0, y1), y1, 220, 0.9 * (1 - prog(b, DRAW[1], DRAW[1] + 0.3)));
+  const gl = IMG.streak_glow, xm = bx(X0, 700);
+  let ga = done ? 1.3 * (1 - ez.p3o(prog(b, CLAP, CLAP + 4))) : 0.18 + 0.3 * prog(b, 222, 223.9) + (sp ? 0.2 * sp.amp : 0);
+  if (gl && ga > 0.003) { g.save(); g.beginPath(); g.rect(0, -10, W, y1 + 10); g.clip(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = clamp(0.5 * ga); g.drawImage(gl, xm - 800, 0); g.restore(); }
+  // 반짝임이 경계를 타고 흐름
+  for (const [b0, dur] of [[222, 1.2], [223.1, 0.8], [228, 2.5], [232.5, 2.0], [236.5, 2.0], [240, 2.2]]) { const u = prog(b, b0, b0 + dur); if (u > 0 && u < 1) { const yy = lerp(-40, H + 40, ez.p2io(u)); glow(bx(X0, yy), yy, 120, 0.55 * Math.sin(Math.PI * u)); } }
+}
+/* 박수: 손에서 동심원(부드러운 고리 · 방사형 빛줄 없음) */
+function clapRings(b) {
+  for (const [b0, s] of [[CLAP, 1], [CLAP + 0.5, 0.45]]) {
+    const t = (b - b0) * SPB; if (t < 0 || t > 1.4) continue;
+    const r = 40 + 900 * ez.p3o(t / 1.4), a = s * (1 - t / 1.4);
+    const gr = g.createRadialGradient(HANDS[0], HANDS[1], Math.max(0, r - 60), HANDS[0], HANDS[1], r + 30);
+    gr.addColorStop(0, 'rgba(255,250,235,0)'); gr.addColorStop(0.6, `rgba(255,250,235,${0.55 * a})`); gr.addColorStop(1, 'rgba(255,250,235,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(HANDS[0], HANDS[1], r + 30, 0, TAU); g.fill();
+  }
+  const t = (b - CLAP) * SPB; if (t >= 0 && t < 0.5) glow(HANDS[0], HANDS[1], 700, 0.9 * (1 - t / 0.5));
+}
+const MOTES = Array.from({ length: 36 }, (_, i) => ({ x: 950 + 950 * hash01(i + 41), y: 60 + 940 * hash01(i + 43), s: 10 + 22 * hash01(i + 47), ph: TAU * hash01(i + 49) }));
+function motes(b) {                                          // 따뜻한 먼지: 늘 아주 천천히 떠 있고, 박수의 동심원이 지나가면 바깥으로 밀렸다 돌아옴
+  if (b < 222) return;
+  const a0 = prog(b, 222, 223) * (1 - prog(b, 242, 248));
+  for (const m of MOTES) {
+    const d = Math.hypot(m.x - HANDS[0], m.y - HANDS[1]), push = 70 * Math.max(0, imp((b - CLAP) * SPB - d / 900, 1.0, 0.45)) * (b >= CLAP ? 1 : 0);
+    const ux = (m.x - HANDS[0]) / (d + 1), uy = (m.y - HANDS[1]) / (d + 1);
+    const x = m.x + ux * push + 10 * Math.sin(b * 0.7 + m.ph), y = m.y + uy * push - 6 * ((b - 222) * 0.6 % 10) - 8 * Math.sin(b * 0.5 + m.ph);
+    glow(x, y, m.s * 3, 0.22 * a0 * (0.6 + 0.4 * Math.sin(b * 2.3 + m.ph)));
+  }
+}
+/* ── 색종이 · 박수 자국 ── */
+const CONF = G.confetti.map((p, i) => ({ ...p, i }));        // p.mark = 박수 자국(손 쪽에서 그어지듯 늘어남) · 그 밖 = 색종이
+function piece(im, x, y, rot, sx, sy) { g.save(); g.translate(x, y); g.rotate(rot); g.scale(sx, sy); g.drawImage(im, -im.width / 2, -im.height / 2); g.restore(); }
+function confetti(b) {
+  if (b < CLAP) return;
+  const s = settle(b);
+  CONF.forEach((p, j) => {
+    const im = IMG['c_' + p.src]; if (!im) return;
+    const cx = p.x + p.w / 2, cy = p.y + p.h / 2, d = Math.hypot(cx - HANDS[0], cy - HANDS[1]);
+    if (p.mark) {                                              // 박수 자국: 손 쪽에서부터 그어지듯 늘어남 · 박마다 다시 작게 튐
+      const t = (b - CLAP) * SPB - j * 0.04, k = stp(t, 3.2, 0.35), pulse = 1 + 0.12 * field(b, HANDS, 9e9, 3, 0.4, ['kick']) * s;
+      const ang = Math.atan2(cy - HANDS[1], cx - HANDS[0]);
+      g.save(); g.translate(cx - Math.cos(ang) * 30 * (1 - k), cy - Math.sin(ang) * 30 * (1 - k)); g.rotate(ang); g.scale(k * pulse, (0.6 + 0.4 * k) * pulse); g.rotate(-ang); g.drawImage(im, -im.width / 2, -im.height / 2); g.restore();
+      return;
+    }
+    // 색종이: 손에서 튀어 올라 뒤집히며 날아가 제자리에 내려앉음(도착 순서 = 거리) → 앉은 뒤에도 박마다 살랑
+    const T = (b - CLAP) * SPB, fly = 0.9 + d / 1400 + 0.15 * j;
+    const u = clamp(T / fly), e = ez.p3o(u);
+    const arcH = 220 + 120 * hash01(j + 3);
+    let x = lerp(HANDS[0], cx, e), y = lerp(HANDS[1], cy, e) - arcH * Math.sin(Math.PI * Math.min(1, e * 1.05));
+    const flip = Math.cos(T * (9 + 3 * j) * (1 - e * 0.9) + j);  // 뒤집힘(앞 · 뒤 납작해짐) — 앉을수록 느려짐
+    let rot = (1 - e) * (5 + 2 * j) * (j % 2 ? 1 : -1);
+    if (u >= 1) {                                               // 앉은 뒤: 살랑 · 박수 · 박에 호응(거리만큼 늦게)
+      const r = field(b, [cx, cy], 1300, 1.6, 0.25, ['kick', 'clap']);
+      rot = (0.06 * Math.sin(b * 1.9 + j * 2) + 0.05 * r) * s;
+      y += (-3 * Math.sin(b * 1.4 + j) - 6 * r) * s;
+    }
+    piece(im, x, y, rot, 1, u < 1 ? 0.3 + 0.7 * Math.abs(flip) : 1 - 0.08 * (1 - Math.abs(Math.cos(b * 1.1 + j))) * s);
+  });
+  // 남의 색 색종이: 손에서 터져 오르며 뒤집히고 흩날리다 화면 밖으로
+  const t = (b - CLAP) * SPB; if (t > 3.8) return;
+  const cols = G.piece_src;
+  for (let i = 0; i < 28; i++) {
+    const im = IMG['c_' + cols[i % 3]]; if (!im) continue;
+    const an = -Math.PI / 2 + (hash01(i + 1) - 0.5) * 2.6, sp = 650 + 1150 * hash01(i + 2), drag = 1 - Math.exp(-t * 2.2);
+    const x = HANDS[0] + Math.cos(an) * sp * drag / 2.2 + 50 * Math.sin(t * (2 + hash01(i + 9) * 2) + i), y = HANDS[1] + Math.sin(an) * sp * drag / 2.2 + 160 * t * t;
+    if (y > H + 100 || x < -100 || x > W + 100) continue;
+    const s = 0.32 + 0.4 * hash01(i + 6);
+    piece(im, x, y, t * (2 + 4 * hash01(i + 7)) * (i % 2 ? 1 : -1), s, s * Math.cos(t * (6 + 6 * hash01(i + 8)) + i));
+  }
+}
+/* ── 글자: 박수에서 튄 씨앗이 떠 있다 제 글자 밑으로 → 글자가 왼쪽 → 오른쪽으로 쫀득하게(떨어짐 · 눌림 · 튀어오름) · 글자 색은 아래에서 차오름 ── */
+const LETTERS = G.letters.filter(p => p.x + p.w < 976);      // 화면 왼쪽 절반의 제목 글자(한 글자 = 한 조각)
+const LET_B = G.letter_beats;                                 // 글자마다 솟는 박(낱말 안 0.9박 · 낱말 사이 1.5박 — prep.py)
+const SEEDS = LETTERS.map((p, k) => ({ hx: 170 + 760 * hash01(k * 7 + 3), hy: 150 + 480 * hash01(k * 7 + 5), ph: TAU * hash01(k * 7 + 9) }));
+function seedPos(k, b) {                                     // 씨앗 k: 박수에서 튀어 왼쪽 빈 곳으로 흩날려 머묾 → 솟기 전 0.55박 동안 제 글자 밑으로 미끄러짐
+  const S = SEEDS[k], p = LETTERS[k], tb = (b - CLAP) * SPB;
+  const u = clamp(tb / (1.5 + 0.12 * k)), e = ez.p3o(u);
+  let x = lerp(HANDS[0], S.hx, e), y = lerp(HANDS[1], S.hy, e) - (300 + 80 * hash01(k)) * Math.sin(Math.PI * Math.min(1, e * 1.1));
+  x += 26 * Math.sin(b * 0.9 + S.ph) * e; y += 16 * Math.sin(b * 1.3 + S.ph * 1.7) * e + 18 * e * Math.sin(b * 0.35 + S.ph);
+  const g0 = LET_B[k] - 0.55, gu = prog(b, g0, LET_B[k]);
+  if (gu > 0) { const ge = ez.p2io(gu), lx = p.x + p.w / 2, ly = p.y + p.h; x = lerp(x, lx, ge); y = lerp(y, ly, ge) - 60 * Math.sin(Math.PI * ge); }
+  return [x, y];
+}
+function seeds(b) {
+  if (b < CLAP) return;
+  LETTERS.forEach((p, k) => {
+    if (b >= LET_B[k] + 0.12) return;
+    const im = IMG['seed_' + k]; if (!im) return;
+    const [x, y] = seedPos(k, b), tb = (b - CLAP) * SPB;
+    const flip = Math.cos(tb * (5 + 1.5 * (k % 4)) + SEEDS[k].ph), land = prog(b, LET_B[k], LET_B[k] + 0.12);
+    const s = (0.8 + 0.2 * hash01(k + 40)) * (1 - land);
+    piece(im, x, y, 0.5 * Math.sin(tb * 1.7 + SEEDS[k].ph), s, s * (0.25 + 0.75 * Math.abs(flip)));
+  });
+}
+function letters(b) {
+  const s = settle(b);
+  LETTERS.forEach((p, k) => {
+    const im = IMG['t_' + p.src], b0 = LET_B[k]; if (!im || b < b0) return;
+    const t = (b - b0) * SPB, grow = 0.2;
+    // 씨앗이 닿은 자리(밑변 가운데)에서 솟아남: 처음엔 작고 세로로 늘었다 → 눌렸다 튐(쫀득)
+    const g0 = stp(t, 2.2, 0.42);
+    let sq = t < grow ? -0.35 * (1 - t / grow) : 0.3 * imp(t - grow, 2.4, 0.3);
+    for (let j = k + 1; j < LETTERS.length; j++) if (b >= LET_B[j]) sq += 0.06 * imp((b - LET_B[j]) * SPB - 0.1 - 0.05 * (j - k), 2.6, 0.35) / (j - k);
+    sq += 0.025 * field(b, [p.x + p.w / 2, p.y + p.h], 1500, 2.2, 0.35, ['kick']) * s;
+    const sc = Math.max(0.05, g0), sy = sc * (1 - sq), sx = sc / Math.sqrt(Math.max(0.3, 1 - sq)), rot = 0.1 * imp(t, 1.8, 0.35) * (k % 2 ? 1 : -1);
+    const cx = p.x + p.w / 2, base = p.y + p.h;
+    const fillU = prog(t, 0.12, 0.6);                          // 글자 색이 밑에서 물결치며 차오름(그 전엔 p.fill 색)
+    let src = im;
+    if (fillU < 1) {
+      ctxReset(lt); lt.clearRect(0, 0, 260, 260); lt.drawImage(im, 0, 0);
+      lt.globalCompositeOperation = 'source-atop'; lt.fillStyle = `rgb(${p.fill.join(',')})`; lt.beginPath();
+      const lvl = p.h * (1 - ez.p2o(fillU)); lt.moveTo(0, 0); lt.lineTo(p.w, 0);
+      for (let x = p.w; x >= 0; x -= 6) lt.lineTo(x, lvl + 7 * Math.sin(x / 13 + t * 18));
+      lt.closePath(); lt.fill(); src = LT;
+    }
+    g.save(); g.translate(cx, base); g.rotate(rot); g.scale(sx, sy); g.drawImage(src, 0, 0, p.w, p.h, -p.w / 2, -p.h, p.w, p.h); g.restore();
+  });
+}
+/* ── 카메라 ── */
+function cam(b) {
+  let k = 1 + 0.045 * ez.sine(prog(b, 214, 223.9));
+  if (b >= CLAP) k = lerp(1.045, 1, ez.p2io(prog(b, CLAP, 236))) + 0.05 * Math.max(0, imp((b - CLAP) * SPB, 1.4, 0.4));
+  return k;
+}
+/* ── 장면 ── */
+function scene(f) {
+  const b = B0 + f / FPB, sp = seepAt(f), done = b >= CLAP;
+  const k = cam(b), cx = 1390, cy = 560;
+  g.save(); g.translate(cx, cy); g.scale(k, k); g.translate(-cx, -cy);
+  bgLayers(b);
+  const pa = ez.sine(prog(b, 246, 252.5));                    // 끝: 층 경계의 가는 빛 번짐까지 끝 화면 판 그대로
+  if (pa > 0) { g.save(); g.globalAlpha = pa; g.drawImage(IMG.plate, 0, 0); g.restore(); }
+  dots(b); carrierDrop(b);
+  motes(b);
+  letters(b);
+  // 캐릭터(메인): 박수 전 = 박수 준비 동작(선화 → 색) · 박수 뒤 = 끝 화면 동작(반은 선화 · 반은 색)
+  const P = charParams(b, f);
+  if (!done) { composeChar(dk, IMG.clap_line, IMG.clap_full, K.x, K.y, b, sp, null, false); drawJelly(DK, K.x, K.y, K.w, K.h, P); }
+  else { composeChar(dt, IMG.end_line, IMG.end_color, D.x, D.y, b, sp, IMG.end_split, !sp); drawJelly(DT, D.x, D.y, D.size[0], D.size[1], P); }
+  streak(b, f);
+  clapRings(b);
+  confetti(b);
+  seeds(b);
+  g.restore();
+}
+function draw(f) {
+  resetCtx();
+  const b = B0 + f / FPB;
+  scene(f);
+  // 박수 출렁임: 화면을 부드러운 물결로 2~4프레임 밀었다 돌아옴(조각마다 장면을 다시 그림 · 날카로운 찢김 없음)
+  const fc = Math.round((CLAP - B0) * FPB), df = f - fc;
+  if (df >= 0 && df < 4) {
+    const A = 26 * (1 - df / 4);
+    for (let i = 0; i < 12; i++) { const y = i * 90, dx = A * Math.sin(i * 0.9 + df * 1.3); g.save(); g.beginPath(); g.rect(0, y, W, 90); g.clip(); g.fillStyle = rgb(C.cream); g.fillRect(0, y, W, 90); g.translate(dx, 0); scene(f); g.restore(); }
+  }
+  if (b < 212.5) { g.fillStyle = rgb(C.orange); g.globalAlpha = 1 - ez.p2o(prog(b, 212, 212.5)); g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+}
+window.__TOTAL = N;
+window.__seekF = f => draw(Math.max(0, Math.min(N - 1, f | 0)));
+window.__hash = () => { const d = g.getImageData(0, 0, W, H).data; let h1 = 0x811c9dc5, h2 = 0x01000193; const u = new Uint32Array(d.buffer); for (let i = 0; i < u.length; i++) { h1 = Math.imul(h1 ^ u[i], 16777619); h2 = Math.imul(h2 + u[i], 2246822519) ^ (h2 >>> 13); } return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0'); };
+(async () => {
+  const L = ['plate', 'bg_base', 'bg_sun', 'bg_wave', 'dots', 'end_split', 'end_line', 'end_color', 'clap_line', 'clap_full', 'streak_glow', 'glow'];
+  try {
+    for (const n of L) IMG[n] = await loadOnce('../build/assets/' + n + '.png');
+    for (const p of G.confetti) IMG['c_' + p.src] = await loadOnce('../build/assets/' + p.src);
+    for (const p of G.letters) IMG['t_' + p.src] = await loadOnce('../build/assets/' + p.src);
+    const shapes = G.piece_src;                               // 씨앗 = 색종이 모양에 글자 색을 입힘(한 번만 만듦)
+    LETTERS.forEach((p, k) => { const src = IMG['c_' + shapes[k % 3]], c = document.createElement('canvas'); c.width = src.width; c.height = src.height; const x = c.getContext('2d'); x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(${p.rgb[0]},${p.rgb[1]},${p.rgb[2]},0.82)`; x.fillRect(0, 0, c.width, c.height); IMG['seed_' + k] = c; });
+  } catch (e) { window.__err = String(e); return; }
+  draw(0); draw(N - 1); draw(0);
+  window.__ready = true;
+})();
+</script>

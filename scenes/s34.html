@@ -1,0 +1,123 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WHAT YOUR COLOR. — 3~4구간(56~136박)</title>
+<style>html, body { margin: 0; background: #000; } #cv { display: block; width: 1920px; height: 1080px; }</style>
+<canvas id="cv" width="1920" height="1080"></canvas>
+<script src="../node_modules/gsap/dist/gsap.min.js"></script>
+<script src="../build/kit.js"></script>
+<script src="../build/masks.js"></script>
+<script src="devices.js"></script>
+<script src="common.js"></script>
+<script>
+/* ── 3~4구간(56~136박 · 800프레임 · 0:18.7~0:45.3) — 숏폼 흐름을 그대로 늘려 앉힘 ──────────────────────
+   색 구간 = 자기 색이 하나씩: k1(56~74) → k2(74~92) → k3(92~110). 어둠 + 그 색 원판(박마다 숨) + 박 펀치 줌 · 바탕에 그 색 구간의 아이콘 무늬가 흐름
+       · 샷 길이를 2 · 1 · ½박으로 섞고(SCH34) 구도는 숏폼 목록(전신 · 거대 글자 · 화면 속 화면 · 얼굴 · 2×2 · 동그라미로 열림 · 망점 · 둘 · 3×3 · 4×4)
+       · 박마다 그 색 아이콘이 떨어져 부딪혀 쌓이고(수박식 물리) 구간이 바뀌면 바닥이 열려 빠짐.
+   몰아치기(110~122) = 엇나간 자리: 박마다 캐릭터가 바뀌고 색이 엉뚱한 부위에 앉음 · 4분박마다 판이 떨림 · 박마다 밝음 ↔ 어둠 · 아이콘 탄막.
+   자리 찾기(122~132.5): 선만 남은 캐릭터 · 키컬러 조각 셋이 엉뚱한 자리에서 날아와 박마다 제자리를 찾으려 함(용수철) → 131 셋이 함께 딸깍 → 눈으로 확 다가감.
+   정적(132.5~136 · 1.2초): 캐릭터의 「진한 면」 덩어리 하나가 넓은 어둠 오른쪽에서 소용돌이 붓으로 감기며 드러남 → 조여 들며 다음 구간 원판 자리로 빨려 듦 → 136 드롭. */
+const N = 80 * FPB;
+const KEY3 = TRUE_C;
+const SECS = [
+  { b0: 56, key: 'k1', shots: [['full', 'cheer'], ['type', 'cheer'], ['pip', 'thanks'], ['face', 'thanks'], ['full', 'wave'], ['type', 'congrats'], ['grid', 'cold'], ['full', 'cheer'], ['full', 'congrats']] },
+  { b0: 74, key: 'k2', shots: [['iris', 'eat'], ['halftone', 'eat'], ['full', 'coffee'], ['face', 'coffee'], ['iris', 'hot'], ['halftone', 'no'], ['pair', 'hug'], ['full', 'eat'], ['full', 'hot']] },
+  { b0: 92, key: 'k3', shots: [['full', 'tickle'], ['iris', 'tickle'], ['full', 'love'], ['tile3', 'love'], ['halftone', 'shy'], ['face', 'surprise'], ['tile4', 'congrats'], ['full', 'love'], ['full', 'shy']] }];
+const STROBE = ['hot', 'congrats', 'no', 'tickle', 'cold', 'lift', 'cheer', 'gift', 'wave', 'eat', 'thanks', 'love'];
+const MAPS = [{ k1: K2, k2: K3, k3: K1, deep: KD }, { k1: K3, k2: K1, k3: K2, deep: KD }];   // 엇나간 자리 두 가지(번갈아)
+function jitter(b) { const q = Math.floor(b * 4); return { k1: [16 * Math.sin(q * 1.7), -12 * Math.cos(q * 2.3)], k2: [-14 * Math.cos(q * 1.3), 10 * Math.sin(q * 2.9)], k3: [10 * Math.sin(q * 3.1), 14 * Math.cos(q * 1.1)] }; }   // 4분박마다 판 떨림
+function sec34c(b, f) {
+  const punchK = b < 132.5 ? (b >= 110 ? 0.05 : 0.035) : 0, t = (b - Math.floor(b)) * SPB, cam = 1 + punchK * (1 - ez.p3o(clamp(t / 0.25)));
+  g.save(); g.translate(960, 540); g.scale(cam, cam); g.translate(-960, -540);
+  night();
+  if (b < 110) {                                              // 색 구간: 그 색 원판 + 샷 목록
+    const si = b < 74 ? 0 : b < 92 ? 1 : 2, S = SECS[si], col = KEY3[S.key], SC = SCH34[si], E = SC.find(e => b >= e.b0 && b < e.b0 + e.dur) || SC[SC.length - 1], comp = E.comp, cut = E.cut, b0 = E.b0;
+    const pop = ez.backO(prog(b, S.b0, S.b0 + 0.6));
+    symField(b, SK_SYMS[si], NIGHT2, 1);                     // 그 색 구간의 아이콘 무늬가 바탕에 흐름
+    const ent = 1 - ez.p3o(clamp((b - b0) / 0.35)), tiles = /grid|tile|iris/.test(comp);
+    g.save(); if (!tiles) g.translate(E.ox + E.ex * 150 * ent, E.ey * 90 * ent);   // 좌우 자리 · 들어오는 방향 변주
+    if (comp !== 'iris') { g.fillStyle = rgb(col); g.beginPath(); g.arc(960, 640, (520 + 60 * kick3(b)) * pop, 0, TAU); g.fill(); }
+    motes(b, 0.08);
+    const A = { [S.key]: 1 };
+    shot3(comp, cut, b0, b, f, A, {}, col);
+    g.restore();
+    if (!/grid|tile/.test(comp)) suikaDraw(SK34, f);         // 수박식 물리
+  } else if (b < 122) {                                       // 몰아치기 = 엇나간 자리
+    const k = Math.floor(b - 110), cut = STROBE[k % STROBE.length];
+    if (k % 2) paper(); rings3(b, k % 2 ? P.ink : P.paper);    // 박마다 밝음 ↔ 어둠 뒤집힘
+    danmaku(DM4, b, 960, 620);                                // 탄막 무늬: 박마다 아이콘 고리 · 반 박마다 나선 팔
+    charOwn(cut, frameOf(cut, b, 110 + k), 960, 1110, 1030 * popK3(110 + k, b), { sq: 0.011 * Math.sin(TAU * b / 4) + 0.05 * kick3(b), sway: 0, ph: f }, ALL, { tru: TRU0, map: MAPS[k % 2], off: jitter(b) });
+  } else if (b < 132.5) {
+    return g.restore(), partsFit(b, f);
+  } else {
+    hornWind(b);                                              // 정적 132.5~136
+  }
+  g.restore();
+}
+/* 정적(132.5~136 · 1.2초): 진한 면 덩어리(prep.py 가 「stand」 0번 장의 진한 면 층에서 가장 큰 덩어리를 떼어 assets/horn.png 로) 하나가
+   화면 오른쪽에 크게 · 굵은 소용돌이 붓(가림막)이 바깥에서 안으로 감기며 드러남 · 살짝 감겨 돌며 자리 잡고 아주 천천히 돎
+   → 135.2 부터 조여 돌며 (1250, 680)(다음 구간 k2 원판 자리)로 빨려 들어감 → 136 드롭. 선은 그리지 않음. */
+const HEYE = G.anchors.horn_eye, HS = G.anchors.horn_scale;   // 덩어리 안의 소용돌이 눈(회전 중심 · 층 px) · 화면 배율
+const [HC, hc] = mk(1920, 1080);
+function spiralPath(c, R, p, turns = 2.25) { const n = 140, k = Math.max(1, Math.round(n * clamp(p))); c.beginPath(); for (let i = 0; i <= k; i++) { const t = i / n, a = t * turns * TAU, r = R * (1 - t * 0.92); i ? c.lineTo(Math.cos(a) * r, Math.sin(a) * r) : c.moveTo(Math.cos(a) * r, Math.sin(a) * r); } }
+function hornWind(b) {
+  const t = (b - 132.5) * SPB, p = lerp(0.2, 1, ez.p2o(prog(b, 132.5, 134.8))), k = ez.p3i(prog(b, 135.2, 136));   // 가림막 붓은 바깥 고리를 건너뛰고 첫 프레임부터 감기기 시작
+  const sc = 1 - 0.97 * k, x = lerp(1360 - 70 * t, 1250, ez.p2io(k)), y = lerp(560 + 14 * Math.sin(t * 0.9), 680, ez.p2io(k));
+  const rot = -0.45 * (1 - p) + 0.16 * t + 2.6 * k;          // 드러나는 동안 살짝 감겨 돌아 자리 잡음 · 그 뒤 아주 천천히 · 끝에 조여 돎
+  motes(b, 0.04);
+  glow(x, y, 1300 * Math.max(sc, 0.2), 0.08 * ez.p2o(clamp(t / 0.45)));
+  const Hn = IMG.horn; if (DRY || !Hn) return;
+  ctxReset(hc); hc.clearRect(0, 0, 1920, 1080);
+  hc.save(); hc.translate(x, y); hc.rotate(rot); hc.scale(sc, sc);
+  hc.save(); hc.scale(HS, HS); hc.drawImage(Hn, -HEYE[0], -HEYE[1]); hc.restore();
+  if (p < 1) { hc.globalCompositeOperation = 'destination-in'; spiralPath(hc, 1000, p); hc.lineWidth = 450; hc.lineCap = 'round'; hc.lineJoin = 'round'; hc.strokeStyle = '#fff'; hc.stroke(); }
+  hc.restore();
+  g.drawImage(HC, 0, 0);
+}
+const DUR18 = [2, 1, 1, 1, 0.5, 0.5, 2, 1, 1, 1, 2, 0.5, 0.5, 1, 1, 1, 1, 1], OXS = [0, -170, 170, 0, 120, -120], ENT = [[0, 0], [1, 0], [-1, 0], [0, -1]];
+// ½박 샷과 그 앞은 전신만(밝은 얼굴 · 글자와 번갈면 번쩍임이 1초 3쌍에 닿음)
+const SCH34 = SECS.map((S, si) => { let t = S.b0; return DUR18.map((d, i) => { let [comp, cut] = S.shots[(i * 4 + si * 2) % 9]; if (d < 1 || (DUR18[i + 1] < 1 && /face|type|iris|grid|tile/.test(comp))) comp = 'full';
+  const e = { b0: t, dur: d, comp, cut, ox: /grid|tile|iris|face/.test(comp) ? 0 : OXS[(i + si) % 6], ex: ENT[(i + si) % 4][0], ey: ENT[(i + si) % 4][1] }; t += d; return e; }); });
+/* 자리 찾기(122~132.5): 선만 남은 캐릭터 · 키컬러 조각이 엉뚱한 자리에서 날아와 박마다 제자리를 찾으려 함 —
+   용수철로 튕겨 나가며 조금씩 가까워짐(조각마다 박을 엇갈려) → 131 셋이 함께 딸깍 제자리 → 눈으로 확 다가감 → 132.5 정적. 「엇나간 자리」의 끝 = 맞는 자리.
+   조각의 회전 중심(fx, fy) = 그 층의 무게중심(층 비율 · prep.py) · tries = 시도마다 어긋난 자리 [dx, dy, 회전] — 마지막이 [0, 0, 0] */
+const FA = G.anchors.fit;
+const FIT = [['k1', K1, FA.k1[0], FA.k1[1], 0, [[-460, -300, 0.8], [330, -160, -0.5], [-190, 120, 0.32], [95, -55, -0.14], [22, 12, 0.04], [0, 0, 0]]],
+  ['k2', K2, FA.k2[0], FA.k2[1], 0.33, [[420, 260, -0.6], [-300, 130, 0.42], [170, -100, -0.26], [-80, 45, 0.1], [-18, -8, -0.03], [0, 0, 0]]],
+  ['k3', K3, FA.k3[0], FA.k3[1], 0.66, [[-260, 330, 0.5], [240, 220, -0.35], [-120, -90, 0.2], [60, 40, -0.08], [12, -6, 0.02], [0, 0, 0]]]];
+const FIT_B = [122, 124, 126, 128, 129.6, 131];
+function partsFit(b, f) {
+  const cut = 'stand', fi = BLINK(b, 125.4) || BLINK(b, 128.7), hpx = 900, cx = 960, bottom = 1075, m = MK[cut], r = boxOf(cut, cx, bottom, hpx), snap = imp((b - 131) * SPB, 2.6, 0.3);
+  const push = ez.expoI(prog(b, 131.6, 132.5)), z = 1 + 6 * push, [ex, ey] = G.anchors.eye_zoom;   // 눈(화면 좌표)으로 다가감
+  g.save(); g.translate(960, 540); g.scale(z, z); g.translate(-lerp(960, ex, Math.min(1, push * 3)), -lerp(540, ey, Math.min(1, push * 3)));
+  night(); rings3(b, P.paper);
+  const J = { sq: 0.011 * Math.sin(TAU * b / 4) + 0.04 * kick3(b) + 0.1 * snap, sway: 3 * Math.sin(TAU * b / 8), ph: f };
+  if (DRY) { for (const k of ['sil', 'ink', 'tick', 'k1', 'k2', 'k3', 'deep', 'full']) layer(cut, fi, k); }
+  else { ctxReset(vg); vg.clearRect(0, 0, m.w + 4, m.h + 4); tintTo(vg, layer(cut, fi, 'sil'), P.paper); jelly(VER, m.w, m.h, r, J); }   // 선만 남은 몸(종이)
+  for (const [key, col, fx, fy, ph, tries] of FIT) {          // 조각: 지난 시도 자리 → 이번 시도 자리로 용수철(넘쳐 튕김)
+    let n = -1; for (let i = 0; i < FIT_B.length; i++) if (b >= FIT_B[i] + ph * (i < FIT_B.length - 1 ? 1 : 0)) n = i;
+    if (n < 0 || DRY) continue;
+    const tb = FIT_B[n] + ph * (n < FIT_B.length - 1 ? 1 : 0), from = n ? tries[n - 1] : [tries[0][0] * 2.2, tries[0][1] * 2.2, tries[0][2] * 2], to = tries[n], k = stp((b - tb) * SPB, 2.4, 0.32);
+    const dx = lerp(from[0], to[0], k), dy = lerp(from[1], to[1], k), rot = lerp(from[2], to[2], k), px = r.x + fx * r.w, py = r.y + fy * r.h;
+    ctxReset(vg); vg.clearRect(0, 0, m.w + 4, m.h + 4);
+    for (const lk of key === DEEP_KEY ? [key, 'deep'] : [key]) { ctxReset(tg); tg.clearRect(0, 0, m.w + 4, m.h + 4); tg.drawImage(layer(cut, fi, 'full'), 0, 0); tg.globalCompositeOperation = 'destination-in'; tg.drawImage(layer(cut, fi, lk), 0, 0); vg.drawImage(TMP, 0, 0, m.w, m.h, 0, 0, m.w, m.h); }
+    g.save(); g.translate(px + dx, py + dy); g.rotate(rot); g.translate(-px, -py); jelly(VER, m.w, m.h, r, J); g.restore();
+    if (n === FIT_B.length - 1 && b < 132.4) partGlow(cut, fi, key, col, r, J, 0.8 * Math.exp(-(b - 131) * SPB * 2.2));
+  }
+  if (!DRY) { ctxReset(vg); vg.clearRect(0, 0, m.w + 4, m.h + 4); tintTo(vg, layer(cut, fi, 'tick'), P.tick); tintTo(vg, layer(cut, fi, 'ink'), P.ink); jelly(VER, m.w, m.h, r, J); }   // 선은 조각 위에
+  if (b >= 131) glow(960, 560, 900, 0.3 * Math.exp(-(b - 131) * SPB * 3));
+  g.restore();
+  const d = prog(b, 132.1, 132.5); if (d > 0) { g.fillStyle = rgb(NIGHT, ez.p2i(d)); g.fillRect(0, 0, W, H); }
+}
+function symField(b, names, col, a) { const sp = 210, off = (b * 26) % sp; g.save(); g.globalAlpha = a; for (let y = -sp; y < H + sp; y += sp) for (let x = -sp; x < W + sp; x += sp) { const r = Math.round((x + y) / sp), q = ((r % names.length) + names.length) % names.length; symbol(names[q], x + off + (Math.abs(r) % 2) * 105, y + off * 0.6, 54, col, b * 0.8 + r); } g.restore(); }
+const SK_SYMS = [['scarf', 'heart', 'star', 'blush'], ['toggle', 'hoof', 'cloud', 'spiral'], ['heart', 'blush', 'star', 'cloud']];   // 색 구간마다 아이콘 넷
+const SKD = []; SECS.forEach((S, si) => { for (let j = 1; j < 18; j++) SKD.push({ b: S.b0 + j, x: 160 + 1600 * hash01(si * 50 + j), r: 46 + 34 * hash01(si * 50 + j + 7), sym: SK_SYMS[si][j % 4], col: j % 3 ? KEY3[S.key] : P.paper, gen: si, vx: (hash01(si * 50 + j + 3) - 0.5) * 200 }); });
+const SK34 = suikaSim(SKD, 56, N, { release: { 0: 74, 1: 92, 2: 110 } });
+const DM4 = []; for (let k = 0; k < 12; k++) { DM4.push({ b: 110 + k, n: 12, speed: 760, rot: k * 0.23, curl: k % 2 ? 0.5 : -0.5, cols: [K1, K2, K3], size: 40 }); DM4.push({ b: 110.5 + k, n: 5, speed: 560, rot: -k * 0.4, curl: 2.2 * (k % 2 ? 1 : -1), cols: [K2], size: 26, sym: 'star' }); }
+
+function draw(f) {
+  g = DRY ? NOOP : G2D; if (!DRY) ctxReset(g);
+  const b = 56 + f / FPB;                                    // 이 페이지 0프레임 = 56박
+  sec34c(b, f);
+}
+boot(N, draw, ['grain.png', 'glow.png', 'horn.png'], typeJobs());
+</script>

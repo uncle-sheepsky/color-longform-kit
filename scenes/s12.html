@@ -1,0 +1,179 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WHAT YOUR COLOR. — 1~2구간(0~56박)</title>
+<style>html, body { margin: 0; background: #000; } #cv { display: block; width: 1920px; height: 1080px; }</style>
+<canvas id="cv" width="1920" height="1080"></canvas>
+<script src="../node_modules/gsap/dist/gsap.min.js"></script>
+<script src="../build/kit.js"></script>
+<script src="../build/masks.js"></script>
+<script src="devices.js"></script>
+<script src="common.js"></script>
+<script>
+/* ── 1~2구간(0~56박 · ♩180 · 560프레임 · 0:00~0:18.7) ──────────────────────────────
+   1 선화(0~24박): 어둠 속 펜 빛이 선을 따라 캐릭터를 그림(크림 선) → 몸이 종이색으로 차고 선이 먹으로 → 숨 · 깜빡
+       → 11.5박 원래 색이 2프레임 비침(잃어버린 색) → 카메라가 물러나며 둘레를 돌던 아이콘이 풀려 떠나감 → 작게 혼자 발치를 내려다봄 → 고개 듦.
+   2 남의 색(24~56박): 2박마다 남의 색 하나 — 원판이 툭 + 색이 발치부터 차오름 · 원판 색은 반 박 늦게(맞지 않는 옷) · 구도는 8박마다
+       · 중간에 2×2 한 번(입어 본 색들) · 얼굴 클로즈업 한 번 · 연한 코드 글자가 쳐지며 흐름 · 리듬 노트가 박마다 머리에 닿음
+       → 끝에 머리부터 색이 빠지고 원판이 줄어 다시 선만(3구간 「누락된 색」으로).
+   화면엔 거의 늘 캐릭터 한 마리 · 격자는 구간마다 한 번 · 색이 바뀔 때 구도도 바뀜(같은 구도 점프컷 없음). */
+const N = 56 * FPB;
+
+/* ═══ 1 선화 ═══ */
+const ORD = {};                                              // 동작_장 → { w, h, ord: 그려지는 순서 0~65535, inkA: 선 알파 }(tools/prep.py 가 선 층에서 만듦)
+const [DRW, dg] = mk(1250, 1150);
+let PEN = null;
+function drawnInk(cut, i, p) {                               // 선 층을 「그려진 만큼」만: 순서 ≤ p 인 픽셀 · 앞쪽 가장자리는 부드럽게 · 펜 끝 위치 기록
+  const O = ORD[cut + '_' + i]; if (!O) return null;
+  const { w, h, ord, inkA } = O, img = dg.createImageData(w, h), d = img.data, thr = p * 65535, soft = 1400;
+  let best = -1, bk = -1;
+  for (let k = 0, n = w * h; k < n; k++) {
+    const a = inkA[k]; if (!a) continue;
+    const o = ord[k]; if (o > thr) continue;
+    const e = Math.min(1, (thr - o) / soft), j = k * 4;
+    d[j] = 255; d[j + 1] = 255; d[j + 2] = 255; d[j + 3] = a * e;
+    if (o > best) { best = o; bk = k; }                       // 펜 끝 = 가장 마지막에 그려진 픽셀(여러 갈래의 평균을 쓰면 선 밖 빈 곳에 뜬다)
+  }
+  ctxReset(dg); dg.clearRect(0, 0, 1250, 1150); dg.putImageData(img, 0, 0);
+  PEN = bk >= 0 && thr - best < 4000 ? [bk % w, (bk / w) | 0] : null;
+  return DRW;
+}
+/* 그려지는 캐릭터(층 좌표 → VER): 종이색(fillA) · 선(p 만큼) · 작은 표시(tickA) */
+function verDrawn(cut, i, p, fillA, tickA, o = {}) {
+  const m = MK[cut], L = k => layer(cut, i, k);
+  if (DRY) { for (const k of ['sil', 'ink', 'tick']) L(k); return { w: m.w, h: m.h }; }
+  if (p >= 1 && fillA >= 1 && tickA >= 1) return ver(cut, i, o);
+  ctxReset(vg); vg.clearRect(0, 0, m.w + 4, m.h + 4);
+  tintTo(vg, L('sil'), P.paper, fillA);
+  tintTo(vg, L('tick'), P.tick, tickA);
+  const ink = p >= 1 ? L('ink') : drawnInk(cut, i, p);
+  if (ink) { ctxReset(tg); tg.clearRect(0, 0, m.w, m.h); tg.drawImage(ink, 0, 0, m.w, m.h, 0, 0, m.w, m.h); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = rgb(o.inkCol || P.ink); tg.fillRect(0, 0, m.w, m.h); vg.drawImage(TMP, 0, 0, m.w, m.h, 0, 0, m.w, m.h); }
+  return { w: m.w, h: m.h };
+}
+function charDrawn(cut, fi, cx, bottom, hpx, J, p, fillA, tickA, o = {}, alpha = 1) {
+  const d = verDrawn(cut, fi, p, fillA, tickA, o), r = boxOf(cut, cx, bottom, hpx);
+  g.save(); g.globalAlpha = alpha; jelly(VER, d.w, d.h, r, J); g.restore();
+  if (PEN && p < 1 && !DRY) { const px = r.x + PEN[0] * r.w / d.w, py = r.y + PEN[1] * r.h / d.h; glow(px, py, 150, 0.75 * alpha); glow(px, py, 40, 0.9 * alpha); }
+  PEN = null; return r;
+}
+function verMix(cut, i) {                                     // 선화(종이 · 표시 · 선)
+  const m = MK[cut], L = k => layer(cut, i, k);
+  if (DRY) { for (const k of ['sil', 'ink', 'tick', 'full']) L(k); return { w: m.w, h: m.h }; }
+  ctxReset(vg); vg.clearRect(0, 0, m.w + 4, m.h + 4);
+  tintTo(vg, L('sil'), P.paper); tintTo(vg, L('tick'), P.tick); tintTo(vg, L('ink'), P.ink);
+  return { w: m.w, h: m.h };
+}
+function charGlimpse(cut, fi, cx, bottom, hpx, J, o = {}) {      // o.full = 원래 색이 비치는 정도(0~1)
+  const d = verMix(cut, fi), r = boxOf(cut, cx, bottom, hpx);
+  jelly(VER, d.w, d.h, r, J);
+  if (o.full > 0 && !DRY) { const f = layer(cut, fi, 'full'); if (f) { ctxReset(vg); vg.clearRect(0, 0, d.w + 4, d.h + 4); vg.drawImage(f, 0, 0); g.save(); g.globalAlpha = o.full; jelly(VER, d.w, d.h, { ...r, x: r.x + (o.dx || 0) }, J); g.restore(); } }
+  return r;
+}
+function sec1(b, f) {
+  night();
+  const bt = (b - Math.floor(b)) * SPB, beat = imp(bt, 2.6, 0.35), br = 0.011 * Math.sin(TAU * b / 4);
+  if (b < 12) {
+    const draw = ez.p2io(prog(b, 0.3, 5.6)), fill = ez.p2io(prog(b, 5.6, 7.0)), live = b >= 7;
+    const J = { sq: br + (live ? 0.03 * beat : 0) + 0.05 * imp((b - 7) * SPB, 2.4, 0.3), sway: live ? 4 * Math.sin(TAU * (b - 7) / 8) : 0, ph: f };
+    motes(b, 0.08 + 0.08 * draw);
+    if (b >= 7) { const k = Math.floor(b), s = ez.backO(clamp((b - k) * 3)); symbol(SYM_NAMES[k % 8], 960, 450, 560 * s, P.paper, b * 0.6, 0.3); }   // 박마다 큰 아이콘이 뒤에서 툭
+    const fg = f - Math.round(11.5 * FPB), gl = fg === 0 || fg === 1 ? 1 : fg === 2 ? 0.45 : 0;   // 11.5박: 원래 색이 2프레임 비침
+    const ga = 0.85 * prog(b, 6.6, 7.6);                       // 은하: 색 없는 아이콘들이 캐릭터 둘레를 돎(뒤 반 · 앞 반)
+    if (ga > 0) galaxy(GX1, b, 960, 640, { layer: 'back', tilt: 0.3, size: 19, a: ga });
+    if (gl > 0) charGlimpse('stand', 0, 960, 1070, 900, J, { full: gl });
+    else charDrawn('stand', live ? BLINK(b, 9.0) : 0, 960, 1070, 900, J, draw, fill, fill, { inkCol: mixC(P.paper, P.ink, fill) });
+    if (ga > 0) galaxy(GX1, b, 960, 640, { layer: 'front', tilt: 0.3, size: 19, a: ga });
+    return;
+  }
+  if (b < 18) return bridge1(b, f);
+  const fi = seqOf([[18, 4], [21, 5], [22.5, 0]], b);         // 작게 혼자 · 발치를 내려다봄 → 고개 듦
+  motes(b, 0.12);
+  lineChar('ready', fi, 960, 1030, 760, { sq: br + 0.05 * imp((b - 18) * SPB, 2.4, 0.3) + 0.03 * imp((b - 22.5) * SPB, 2.4, 0.3), sway: 4 * Math.sin(TAU * b / 8), ph: f }, {});
+  notesDraw(NOTES2, b, BLK[0].bottom - BLK[0].hpx * 0.92, 130);
+}
+function bridge1(b, f) {                                      // 4초 장면 → 6초 장면: 같은 자리에서 카메라가 천천히 물러나며 캐릭터가 작아지고 · 둘레 아이콘이 바깥으로 풀려 떠나감
+  night();
+  const u = ez.p2io(prog(b, 12, 17.6)), hpx = lerp(900, 760, u), bottom = lerp(1070, 1030, u), br = 0.011 * Math.sin(TAU * b / 4);
+  motes(b, 0.16 - 0.04 * u);
+  const ga = 0.85 * (1 - ez.p2i(prog(b, 15.2, 17.8))), rs = 1 + 1.7 * ez.p2i(prog(b, 12.3, 17.6)), gy = lerp(640, 600, u), sp = 1 + 1.2 * u;
+  if (ga > 0.01) galaxy(GX1, b, 960, gy, { layer: 'back', tilt: 0.3, size: 19, a: ga, rScale: rs, spin: sp });
+  const swap = b >= 14, cut = swap ? 'ready' : 'stand', fi = swap ? seqOf([[14, 0], [15.6, 4]], b) : BLINK(b, 13);
+  const J = { sq: br + 0.03 * imp((b - Math.floor(b)) * SPB, 2.6, 0.35) * (1 - u) + 0.08 * imp((b - 14) * SPB, 2.6, 0.3) + 0.05 * imp((b - 12) * SPB, 2.4, 0.3), sway: 4 * Math.sin(TAU * b / 8), ph: f };
+  lineChar(cut, fi, 960, bottom, hpx, J, {});
+  if (ga > 0.01) galaxy(GX1, b, 960, gy, { layer: 'front', tilt: 0.3, size: 19, a: ga, rScale: rs, spin: sp });
+}
+
+/* ═══ 2 남의 색 ═══ */
+const SEQ8 = [0, 1, 2, 3, 4, 5, 6, 7, 2, 5, 0, 7, 4, 1, 6, 3];   // 남의 색 8가지 · 2박마다 하나
+const colAt = ci => OTHERS[SEQ8[Math.max(0, Math.min(15, ci))]];
+function plate(cx, cy, R, b, colNow, colPrev, since, kick) {  // 원판: 새 색이 가운데서 반 박 늦게 번져 나옴 · 박마다 살짝 숨
+  const u = ez.p3o(clamp((b - since - 0.5) / 0.9)), rr = R * (1 + 0.018 * kick);
+  if (colPrev) { g.fillStyle = rgb(colPrev); g.beginPath(); g.arc(cx, cy, rr, 0, TAU); g.fill(); }
+  if (u > 0) { g.fillStyle = rgb(colNow); g.beginPath(); g.arc(cx, cy, rr * u, 0, TAU); g.fill(); }
+}
+function faceUp(b, f, b0, base) {                             // 놀란 얼굴이 화면 가득 · 천천히 다가감
+  const push = ez.p2io(prog(b, b0, b0 + 4)), fi = seqOf([[b0, 0], [b0 + 0.25, 2], [b0 + 0.5, 4], [b0 + 1.5, 5]], b);
+  lineChar('surprise', fi, 960, lerp(closeB(1700), closeB(2000), push), lerp(1700, 2000, push), { sq: 0.06 * imp((b - b0) * SPB, 2.6, 0.3) + 0.011 * Math.sin(TAU * b / 4), sway: 0, ph: f }, { base });
+}
+function grid4(b, f, b0, cells) {                             // 2×2: 반 박마다 한 칸씩 시계 방향으로 · 칸 안에서 아래에서 올라와 앉음
+  const cw = W / 2, ch = H / 2, br = 0.011 * Math.sin(TAU * b / 4);
+  for (let k = 0; k < 4; k++) {
+    const [cut, fi, col, slot] = cells[k], at = b0 + k * 0.5; if (b < at) continue;
+    const c = slot % 2, r = Math.floor(slot / 2), x0 = c * cw, y0 = r * ch, pop = stp((b - at) * SPB, 2.8, 0.42);
+    g.save(); g.beginPath(); g.rect(x0 + 6, y0 + 6, cw - 12, ch - 12); g.clip(); g.fillStyle = rgb(NIGHT2); g.fillRect(x0, y0, cw, ch);
+    if (col) { g.fillStyle = rgb(col); g.beginPath(); g.arc(x0 + cw / 2, y0 + ch * 0.46, 210 * ez.backO(clamp((b - at - 0.15) * 2.5)), 0, TAU); g.fill(); }
+    lineChar(cut, fi, x0 + cw / 2, y0 + ch + 10 + (1 - pop) * 120, ch, { sq: 0.06 * imp((b - at) * SPB, 2.6, 0.3) + br, sway: 0, ph: f + k }, { base: col || P.paper });
+    g.restore();
+  }
+}
+const GRID2 = [['wave', 2, colAt(3), 0], ['shy', 0, colAt(4), 1], ['stand', 0, null, 3], ['peek', 3, colAt(5), 2]];
+const BLK = [                                                 // 구도는 8박마다(색은 2박마다) · 게임 스틱을 쥔 캐릭터가 리듬게임을 함
+  { b0: 24, cut: 'play', hpx: 940, bottom: 1080, cy: 500, R: 440 },
+  { b0: 32, cut: 'play_lean', hpx: 1180, bottom: 1230, cy: 470, R: 520 },
+  { b0: 40, cut: 'play_mash', hpx: 900, bottom: 1070, cy: 520, R: 420 },
+  { b0: 48, cut: 'ready', hpx: 1040, bottom: 1120, cy: 480, R: 480, seq: [[48, 0], [50, 5], [52, 0], [53.5, 4]] }];
+function sec2(b, f) {
+  night();
+  if (b >= 36 && b < 38) return grid4(b, f, 36, GRID2);
+  const ci = Math.max(0, Math.min(15, Math.floor((b - 24) / 2))), col = colAt(ci), prev = ci ? colAt(ci - 1) : null, since = 24 + 2 * ci;
+  if (b >= 44 && b < 46) return faceUp(b, f, 44, col);
+  const k = Math.min(3, Math.floor((b - 24) / 8)), B = BLK[k];
+  const bt = (b - Math.floor(b)) * SPB, beat = imp(bt, 2.6, 0.35), br = 0.011 * Math.sin(TAU * b / 4), back = k === 1 && b >= 38 ? 38 : k === 2 && b >= 46 ? 46 : B.b0;
+  const pop = ci === 0 ? ez.backO(prog(b, 24, 24.5)) : 1, shrink = b >= 53 ? 1 - ez.p3i(prog(b, 53, 55)) : 1, R = B.R * pop * shrink;
+  if (R > 1) plate(960, B.cy, R, b, col, prev, ci === 0 ? 22 : since, beat);
+  motes(b, 0.1);
+  const fi = B.seq ? seqOf(B.seq, b) : frameOf(B.cut, b, B.b0), pourL = ez.p2o(prog(b, since + 0.05, since + 0.6)), peel = b >= 52.5 ? ez.p2io(prog(b, 52.5, 54.5)) : 0;
+  const J = { sq: br + 0.03 * beat + 0.06 * imp((b - back) * SPB, 2.4, 0.3) + 0.04 * imp((b - since) * SPB, 2.8, 0.3), sway: 5 * Math.sin(TAU * b / 8), ph: f };
+  codeLines(b, col, false);                                   // 코드 줄(캐릭터 아래 층)
+  lineChar(B.cut, fi, 960, B.bottom, B.hpx, J, { base: prev || P.paper, pour: { level: pourL * 1.15, c: col, t: b }, peel });
+  notesDraw(NOTES2, b, B.bottom - B.hpx * 0.92, 130);         // 리듬게임 노트: 색이 바뀌는 박(2박마다)엔 큰 노트 · 사이 박엔 다음 색 작은 노트
+  codeLines(b, col, true);                                    // 코드 줄(캐릭터를 가리는 위 층)
+}
+/* 연한 코드 글자가 쳐지며 왼쪽으로 흐름 — 지금 색에 맞춘 연한 글자 · 줄마다 캐릭터 위 층 / 아래 층을 오감 · 픽셀 글꼴(결정론) */
+const CNAME = KIT.other_names, hexOf = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+const NM = KIT.code_name, PN = KIT.part_names;
+const CODE = [];
+for (let k = 0; k < 28; k++) { const sb = 24 + k, ci = Math.floor(k / 2), nm = CNAME[SEQ8[ci]], hx = hexOf(colAt(ci)), nx = CNAME[SEQ8[Math.min(15, ci + 1)]];
+  const T = [`WEAR("${hx}");`, `${NM}.${PN.k2} = ${nm};`, `FIT(${NM}, ${nm}) -> 0.${(k * 37) % 90 + 10}`, `IF (!FITS) NEXT(${nx});`, `${PN.k1}.FILL = ${nm};`, `UNDO(${nm});`, `TRY { WEAR(${nx}) }`, `COLOR[${ci}] = "${hx}";`];
+  CODE.push({ sb, text: T[k % T.length], y: [140, 290, 840, 965, 420, 705][k % 6], front: k % 2 === 1, x0: 1520 + (k % 3) * 130 }); }
+function codeLines(b, col, front) {
+  const c = mixC(col, [255, 250, 240], 0.4), fade = 1 - ez.p2i(prog(b, 52, 53.2));
+  for (const L of CODE) { if (L.front !== front) continue; const t = (b - L.sb) * SPB; if (t < 0) continue;
+    const x = L.x0 - 250 * t; if (x < -700) continue; const n = Math.floor(t * 30), a = (front ? 0.3 : 0.24) * clamp(t / 0.15) * fade;
+    const xe = pxText(L.text, x, L.y, 3, c, a, n); if (n < L.text.length && Math.floor(b * 4) % 2 === 0) { g.fillStyle = rgb(c, a); g.fillRect(xe + 2, L.y, 14, 21); } }   // 쳐지는 동안 커서 한 칸
+}
+const NOTES2 = [];
+for (let ci = 0; ci < 16; ci++) { const hb = 24 + 2 * ci, skip = h => (h >= 36 && h < 38) || (h >= 44 && h < 46) || h >= 52; if (!skip(hb)) NOTES2.push({ hb, x: 960, sym: SYM_NAMES[(ci * 3) % 8], col: colAt(ci), size: 90 }); if (!skip(hb + 1) && ci < 15) NOTES2.push({ hb: hb + 1, x: ci % 2 ? 800 : 1120, sym: SYM_NAMES[(ci * 5 + 2) % 8], col: colAt(ci + 1), size: 44 }); }
+
+function draw(f) {
+  g = DRY ? NOOP : G2D; if (!DRY) ctxReset(g);
+  const b = f / FPB, pk = b >= 24 && b < 55 ? 1 + 0.035 * (1 - ez.p3o(clamp(((b - Math.floor(b)) * SPB) / 0.25))) : 1;   // 2구간 박 펀치 줌
+  g.save(); g.translate(960, 540); g.scale(pk, pk); g.translate(-960, -540);
+  if (b < 24) sec1(b, f); else sec2(b, f);
+  g.restore();
+}
+const GX1 = makeGalaxy(111, 20, 470, 760, 2, [P.paper], 1);
+const ORD_KEY = 'stand_0';
+boot(N, draw, ['grain.png', 'glow.png'],
+  [() => loadOnce('../build/order/' + ORD_KEY + '.png').then(c => { const w = c.width, h = c.height, d = c.getContext('2d').getImageData(0, 0, w, h).data, ord = new Uint32Array(w * h), inkA = new Uint8Array(w * h); for (let k = 0; k < w * h; k++) { ord[k] = d[k * 4] * 256 + d[k * 4 + 1]; } ORD[ORD_KEY] = { w, h, ord, inkA }; })],
+  () => { const L = LAYER['stand|0|ink']; if (!L || !ORD[ORD_KEY]) return; const d = L.getContext('2d').getImageData(0, 0, L.width, L.height).data; for (let k = 0; k < ORD[ORD_KEY].inkA.length; k++) ORD[ORD_KEY].inkA[k] = d[k * 4 + 3]; });
+</script>

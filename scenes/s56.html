@@ -1,0 +1,206 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WHAT YOUR COLOR. — 5~6구간(136~196박)</title>
+<style>html, body { margin: 0; background: #000; } #cv { display: block; width: 1920px; height: 1080px; }</style>
+<canvas id="cv" width="1920" height="1080"></canvas>
+<script src="../node_modules/gsap/dist/gsap.min.js"></script>
+<script src="../build/kit.js"></script>
+<script src="../build/masks.js"></script>
+<script src="devices.js"></script>
+<script src="common.js"></script>
+<script>
+/* ── 5~6구간(136~196박 · 600프레임 · 0:45.3~1:05.3) ──────────────────────────────────
+   A 드롭(136~156): 멈춤 뒤 원본 색 그대로 · 원판 셋(k1 · k2 · k3)이 엇갈려 툭 · 박마다 고리 · 빛점(짧은 가로 빛줄) · 아이콘 색종이 ·
+       캐릭터 둘레를 아이콘 은하가 돎 · 샷 길이 2 · 1 · ½박 섞음(SCH56) · 구도는 숏폼 드롭 목록.
+   B 원판 속 세계(156~172): k3 원판이 곧 창 → 날아 들어가면 테트리스(캐릭터 색 블록이 떨어져 쌓이고 네 줄이 지워지며 아이콘이 튐 · 옆에서 캐릭터(선화)가 게임 스틱)
+       → 테트리스 가운데 어두운 원이 열려 블랙홀(캐릭터 색 · 아이콘이 끌려 감김 · 캐릭터 없음) → 어둠.
+   C 빛(172~196 · 안쪽 박 172~212 를 1.67배속): 어둠 속 실루엣 캐릭터 · 위에서 빛 원뿔 · 빛 입자 은하가 빨리 켜지고 빨리 돎
+       → 닿은 자리(k1 · k2 · k3)가 차례로 제 색으로 번짐 → 입자가 3차원 길(머리 둘레 → 해 아래 → 해 뒤)로 해에 빨려 듦
+       → 마지막 입자를 삼키는 순간 해가 커져 화면 전체 주황(7~8구간 첫 프레임과 같은 화면). */
+const N = 60 * FPB;
+const ORANGE = G.colors.orange, SUNP = [G.sun.cx, G.sun.cy];
+const DROPS5 = [['full', 'congrats'], ['type', 'cheer'], ['tile4', 'love'], ['pip', 'love'], ['face', 'wave'], ['pair', 'gift'], ['halftone', 'eat'], ['full', 'cheer'], ['tile3', 'congrats'], ['full', 'congrats']];
+const FULLO = { full: true };
+function discs3(b, b0) {                                      // 원판 셋이 엇갈려 툭 · 박마다 숨
+  const ke = kick3(b);
+  [[K1, 700, 600, 470], [K2, 1250, 680, 520], [K3, 960, 470, 420]].forEach(([c, x, y, R], j) => { const p = ez.backO(clamp((b - b0 - 0.12 * j) / 1.0)); if (p <= 0) return; g.fillStyle = rgb(c); g.beginPath(); g.arc(x, y, (R + 40 * ke) * p, 0, TAU); g.fill(); });
+}
+const DOTS = [];                                              // 빛점: 반 박마다 한 점 · 켜질 때 짧은 가로 빛줄(방사형 아님)
+for (let k = 0; k < 40; k++) { const b = 136 + k * 0.5 + (k % 3 === 2 ? 0.25 : 0); DOTS.push({ b, x: 240 + 1440 * hash01(k + 501), y: 120 + 420 * hash01(k + 503), c: [K1, K2, K3, P.paper][k % 4], s: 0.6 + 0.6 * hash01(k + 505) }); }
+function lightDot(D, b) {
+  const t = (b - D.b) * SPB; if (t < 0) return; const a = Math.exp(-t / 3); if (a < 0.03) return;
+  const hit = Math.exp(-t / 0.08), x = D.x, y = D.y, R = (18 + 60 * hit) * D.s;
+  const gr = g.createRadialGradient(x, y, 0, x, y, R * 2.2); gr.addColorStop(0, rgb(D.c)); gr.addColorStop(0.35, rgb(D.c)); gr.addColorStop(1, rgb(D.c, 0));
+  g.save(); g.globalAlpha = a; g.fillStyle = gr; g.fillRect(x - R * 2.2, y - R * 2.2, R * 4.4, R * 4.4);
+  if (hit > 0.2) { g.globalAlpha = a * hit; g.fillStyle = rgb(D.c); g.fillRect(x - 260 * hit, y - 3, 520 * hit, 6); }
+  g.restore();
+}
+function symConfetti5(b) {                                    // 드롭의 아이콘 색종이(4초)
+  const t = (b - 136) * SPB; if (t < 0 || t > 4.5) return;
+  for (let i = 0; i < 56; i++) { const x0 = W * hash01(i + 11), vy = 280 + 520 * hash01(i + 12), y = -80 - 900 * hash01(i + 13) + vy * t + 240 * t * t; if (y > H + 100) continue;
+    symbol(SYM_NAMES[i % 8], x0 + 60 * Math.sin(t * 2.5 + i), y, 22 + 22 * hash01(i + 15), [K1, K2, K3, P.paper][i % 4], t * (1.5 + 3 * hash01(i + 16)) + i); }
+}
+const GX5 = makeGalaxy(301, 30, 560, 900, 2, [K1, K2, K3, P.paper], 1);
+const GXL = makeGalaxy(501, 260, 150, 950, 2, [K1, K2, K3, [255, 236, 210], [255, 236, 210]], 0.12);
+
+/* ── 원판 속 세계(156~172) ── */
+function zoomTo(win, u) {                                     // u 0→1: 창 안쪽 사각형 폭이 화면 폭이 될 때까지 날아 들어감(끝 = 세계가 화면과 꼭 같음)
+  const [x0, y0, x1, y1] = win.rect, S = W / (x1 - x0), s = Math.exp(Math.log(S) * u), k = (s - 1) / (S - 1 || 1), cx = lerp(960, (x0 + x1) / 2, k), cy = lerp(540, (y0 + y1) / 2, k);
+  g.translate(960, 540); g.scale(s, s); g.translate(-cx, -cy);
+}
+/* 테트리스 세계 */
+const TW = { x: 520, y: 90, c: 50, cols: 10, rows: 18 };
+const TSH = { I: [[0, 0], [0, 1], [0, 2], [0, 3]], O: [[0, 0], [1, 0], [0, 1], [1, 1]], T: [[0, 0], [1, 0], [2, 0], [1, 1]], L: [[0, 0], [0, 1], [0, 2], [1, 2]], S: [[1, 0], [2, 0], [0, 1], [1, 1]], Z: [[0, 0], [1, 0], [1, 1], [2, 1]], J: [[1, 0], [1, 1], [1, 2], [0, 2]] };
+const TCOL = [K1, K2, K3, ...PAL.blocks];                     // 블록 색 = 캐릭터 색 셋 + 종이 · 진한 면 · 그 사이 색(prep.py)
+const TSCRIPT = [[158.4, 'O', 0, 0], [159.0, 'L', 2, 1], [159.6, 'T', 5, 2], [160.2, 'J', 3, 3], [160.8, 'S', 6, 4], [161.4, 'I', 9, 5], [162.5, 'Z', 1, 6]];   // [떨어지기 시작 박, 모양, 왼쪽 칸, 색]
+const TFALL = 0.42, TCLEAR = 0.45, TSHIFT = 0.3;
+const TB = (() => {                                           // 로드 때 한 번: 굳은 판 · 낙하 끝 줄 · 지워지는 줄을 미리 계산
+  const R = TW.rows, C = TW.cols, grid = Array.from({ length: R }, () => Array(C).fill(-1));
+  for (let r = R - 4; r < R; r++) for (let c = 0; c < C - 1; c++) grid[r][c] = (r * 7 + c * 3) % TCOL.length;
+  [[R - 5, 0], [R - 5, 1], [R - 5, 5], [R - 5, 7], [R - 6, 7]].forEach(([r, c], i) => { grid[r][c] = (i * 5 + 2) % TCOL.length; });
+  const states = [{ b: -1e9, grid: grid.map(r => r.slice()) }], drops = [];
+  let gcur = grid.map(r => r.slice());
+  for (const [b0, sh, x, ci] of TSCRIPT) {
+    const cells = TSH[sh]; let y = -4;
+    const fits = yy => cells.every(([dx, dy]) => { const rr = yy + dy, cc = x + dx; return cc >= 0 && cc < C && rr < R && (rr < 0 || gcur[rr][cc] < 0); });
+    while (fits(y + 1)) y++;
+    drops.push({ b0, sh, x, y, ci });
+    const g2 = gcur.map(r => r.slice()); cells.forEach(([dx, dy]) => { if (y + dy >= 0) g2[y + dy][x + dx] = ci; });
+    const full = []; for (let r = 0; r < R; r++) if (g2[r].every(v => v >= 0)) full.push(r);
+    states.push({ b: b0 + TFALL, grid: g2, full });
+    if (full.length) { const g3 = g2.filter((_, r) => !full.includes(r)); while (g3.length < R) g3.unshift(Array(C).fill(-1)); states.push({ b: b0 + TFALL + TCLEAR + TSHIFT, grid: g3, cleared: full }); }
+    gcur = states[states.length - 1].grid.map(r => r.slice());
+  }
+  return { states, drops };
+})();
+function tBlock(x, y, s, col, a = 1) {
+  if (DRY) return;                                            // 빈 실행의 가짜 붓은 속성 읽기(globalAlpha *=)를 못 함
+  g.save(); g.globalAlpha *= a; rrPath(x + 2, y + 2, s - 4, s - 4, s * 0.16); g.fillStyle = rgb(col); g.fill();
+  rrPath(x + 6, y + 6, s - 12, (s - 12) * 0.42, s * 0.12); g.fillStyle = rgb(mixC(col, [255, 255, 255], 0.38)); g.fill(); g.restore();
+}
+function tetrisWorld(b, f) {                                  // 우물 테 · 점수 · 다음 블록 판 없음(옛 게임 화면 재현이 아니라 기능만) — 어둠 위 캐릭터 색 블록이 떨어져 쌓이고 · 줄이 지워지면 아이콘이 튐
+  night(); motes(b, 0.08);
+  const R = TW.rows, C = TW.cols, X = TW.x, Y = TW.y, S = TW.c;
+  g.fillStyle = rgb(K3); g.beginPath(); g.arc(X + C * S / 2, 640, 430 + 30 * imp((b - Math.floor(b)) * SPB, 2.6, 0.35), 0, TAU); g.fill();   // 원판
+  let st = TB.states[0]; for (const s2 of TB.states) if (s2.b <= b) st = s2;
+  const clearing = st.full && st.full.length ? clamp((b - st.b) / TCLEAR) : 0;
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { const v = st.grid[r][c]; if (v < 0) continue;
+    if (st.full && st.full.includes(r)) { const k = 1 - ez.p2i(clearing); if (k <= 0) continue; const s3 = S * k; tBlock(X + c * S + (S - s3) / 2, Y + r * S + (S - s3) / 2, s3, mixC(TCOL[v], [255, 250, 240], 0.6 * clearing), 1); }
+    else tBlock(X + c * S, Y + r * S, S, TCOL[v]); }
+  if (st.full && st.full.length && clearing < 1) {
+    for (let i = 0; i < 30; i++) { const t = (b - st.b) * SPB, an = TAU * hash01(i + 71), v = 520 + 620 * hash01(i + 73), x = X + C * S * hash01(i + 75), y = Y + (st.full[i % st.full.length] + 0.5) * S; symbol(SYM_NAMES[i % 8], x + v * Math.cos(an) * t, y - v * t * 0.7 + 900 * t * t, 26 + 18 * hash01(i + 77), TCOL[i % TCOL.length], t * 4 + i, 1 - clamp(t / 1.2)); } }   // 지워진 줄에서 아이콘이 튐
+  for (const D of TB.drops) { const u = (b - D.b0) / TFALL; if (u < 0 || u >= 1) continue; const yy = lerp(-4, D.y, ez.p2i(u)); for (const [dx, dy] of TSH[D.sh]) { const r = yy + dy; if (r < -0.9) continue; tBlock(X + (D.x + dx) * S, Y + r * S, S, TCOL[D.ci]); } }
+  const J = { sq: 0.011 * Math.sin(TAU * b / 4) + 0.05 * imp(((b - Math.floor(b)) * SPB), 2.6, 0.35) + 0.09 * imp((b - 161.4 - TFALL) * SPB, 2.6, 0.3), sway: 0, ph: f };
+  const bomb = b >= 161.6 && b < 162.6, cut = bomb ? 'play_bomb' : 'play_mash';
+  lineChar(cut, frameOf(cut, b, 158), 1560, 1100, 700, J, {});   // 여기 캐릭터는 선화로
+}
+/* 블랙홀 세계: 따뜻한 어둠 가운데 검은 구멍이 캐릭터의 색과 아이콘을 끌어당겨 감음(캐릭터 없음) */
+const GXB = makeGalaxy(711, 380, 200, 640, 3, [K1, K2, K3, P.paper, [255, 214, 160]], 0.12);
+function bhWorld(b, f) {
+  night(); motes(b, 0.06);
+  const cx = 1000, cy = 540, out = ez.p2i(prog(b, 170.2, 171.8)), rs = 1 - 0.85 * out, al = 1 - out;
+  glow(cx, cy, 1200 * rs, 0.12 * al);
+  galaxy(GXB, b, cx, cy, { layer: 'back', tilt: 0.24, size: 7, a: al, spin: 1.6, rScale: rs });
+  if (!DRY && al > 0.01) { const ref = GXB[0].r;                 // 원반 뒤쪽이 구멍 위로 휘어 보임(렌즈)
+    for (const P2 of GXB) { if (P2.sym) continue; const [xg, yg, th] = galaxyPos(P2, b, cx, cy, 0.24, 1.6, ref); if (Math.sin(th) > 0) continue; const x = cx + (xg - cx) * rs, dx = (x - cx) / (P2.r * rs * 1.05), ph = Math.acos(clamp(dx, -1, 1)), Rl = (190 + 0.35 * (P2.r - 200)) * rs, xl = cx + Rl * Math.cos(ph), yl = cy - Rl * Math.sin(ph) * 0.92;
+      g.fillStyle = rgb(P2.col, 0.5 * al); g.beginPath(); g.arc(xl, yl, 2.6, 0, TAU); g.fill(); } }
+  g.fillStyle = rgb([8, 3, 1]); g.beginPath(); g.arc(cx, cy, 170 * rs, 0, TAU); g.fill();
+  g.save(); g.globalAlpha = 0.85 * al; g.strokeStyle = rgb(P.paper); g.lineWidth = 4; g.beginPath(); g.arc(cx, cy, 176 * rs, 0, TAU); g.stroke(); g.restore();
+  galaxy(GXB, b, cx, cy, { layer: 'front', tilt: 0.24, size: 7, a: al, spin: 1.6, rScale: rs });
+}
+function circWin(cx, cy, R) { const k = 0.8716 * R, h = k * 9 / 16; return { circ: [cx, cy, R], rect: [cx - k, cy - h, cx + k, cy + h] }; }   // 원 안에 꼭 맞는 16:9 사각형(날아 들어가면 원이 화면 모서리까지 덮음)
+function inCircle(win, bg, worldFn) {
+  const [cx, cy, R] = win.circ, [x0, y0, x1, y1] = win.rect, s2 = (x1 - x0) / W;
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip(); g.fillStyle = rgb(bg); g.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2); g.scale(s2, s2); g.translate(-W / 2, -H / 2); worldFn(); g.restore();
+}
+function worldsShot(b, f) {                                   // 원판이 곧 창
+  if (b < 158.6) {                                            // k3 원판 속 = 테트리스 세계 → 날아 들어감
+    const pop = ez.backO(prog(b, 156, 156.6)), win = circWin(960, 560, 470 * pop);
+    g.save(); if (b >= 157.6) zoomTo(win, ez.expoI(prog(b, 157.6, 158.6)));
+    night();
+    if (pop > 0.05) { inCircle(win, NIGHT, () => tetrisWorld(b, f)); g.save(); g.globalAlpha = 0.9; g.strokeStyle = rgb(P.paper); g.lineWidth = 5; g.beginPath(); g.arc(960, 560, 470 * pop + 6, 0, TAU); g.stroke(); g.restore(); }
+    g.restore(); return;
+  }
+  if (b < 163) return tetrisWorld(b, f);
+  if (b < 165) {                                              // 테트리스 가운데 어두운 원이 열림(블랙홀) → 그 속으로
+    const op = ez.backO(prog(b, 163, 163.7)), win = circWin(960, 540, 300 * op);
+    g.save(); if (b >= 164) zoomTo(win, ez.expoI(prog(b, 164, 165)));
+    tetrisWorld(b, f);
+    if (op > 0.02) { g.save(); g.globalAlpha = 0.9; g.strokeStyle = rgb(P.paper); g.lineWidth = 5; g.beginPath(); g.arc(960, 540, 300 * op + 6, 0, TAU); g.stroke(); g.restore(); inCircle(win, NIGHT, () => bhWorld(b, f)); }
+    g.restore(); return;
+  }
+  bhWorld(b, f);
+}
+
+/* ── 빛(안쪽 박 172~212) ── */
+const SILB = () => boxOf('ready', 960, H + 24, 720);          // 실루엣 자리(assets/s6_rim 테두리 빛과 같은 자리 — prep.py)
+const PARTLIT2 = [[182, 'k1', K1], [184, 'k2', K2], [186, 'k3', K3]];   // 빛이 닿아 제 색으로 번지는 박
+GXL.forEach((P2, i) => { P2.td = 188 + 13.3 * hash01(i * 13 + 7);   // 입자마다 빨려 들기 시작하는 박(마지막 입자가 205.5 에 빨려 들고 바로 그 순간부터 해가 커짐)
+  P2.oo = [(hash01(i * 17 + 3) - 0.5) * 70, (hash01(i * 19 + 5) - 0.5) * 70]; });
+/* 3차원 길: 머리 둘레를 한 바퀴(뒤통수 쪽에선 머리에 가려짐) → 머리와 해 사이로 앞으로 나와 위 층 → 해 앞을 지나 오른쪽 끝을 돌아 해 뒤로 감기며 빨려 듦.
+   깊이 z(앞 +)로 층을 정함: 길의 각 점 · 꼬리의 각 점마다 따로 계산(가림과 움직임이 어긋날 일 없음). 층이 바뀌는 자리는 머리 · 해 바깥 옆(겹침 없음 → 튐 없음). */
+const SDUR = 4.2, LSPIN = 2.0;
+const SP3 = [[1250, 380, 0.35], [1400, 470, 0.5], [1470, 700, 0.6], [1580, 880, 0.6], [1800, 850, 0.4], [1880, 690, 0.05], [1790, 560, -0.5], [1660, 580, -0.9], [SUNP[0], SUNP[1], -1]];   // 머리 오른쪽 위 → 아래로 크게 휘어 해 아래 → 오른쪽으로 감아 올라 → 해 뒤로
+function sPos(P2, b) {                                         // → [x, y, z, 단계] · z > 0 = 앞
+  const t = b - P2.td, u = clamp(t / SDUR), [x0, y0, th0] = galaxyPos(P2, P2.td, 960, 660, 0.26, LSPIN, GXL[0].r), z0 = Math.sin(th0);
+  const pts = [[x0, y0, z0], ...SP3.slice(0, -1).map(([x, y, z], j) => [x + P2.oo[0] * (j < 6 ? 1 : 0.5), y + P2.oo[1] * (j < 6 ? 1 : 0.5), z]), SP3[SP3.length - 1]];
+  const ue = Math.pow(u, 1.1), xy = crPath(pts, ue), zz = crPath(pts.map(([x, y, z]) => [z, 0]), ue)[0];
+  const zf = ue < 0.12 ? lerp(z0, Math.max(z0, 0.35), ez.p2io(ue / 0.12)) : zz;   // 뒤에서 출발한 입자는 머리 오른쪽 위로 빠져나온 뒤에(실루엣 밖) 앞 층으로
+  return [xy[0], xy[1], zf, ue > 0.6 ? 'C' : 'A'];
+}
+function sLayer(z, ph) { return z >= 0 ? 'front' : ph === 'C' ? 'sun' : 'char'; }   // 뒤쪽: 해 쪽이면 해 뒤 · 머리 쪽이면 캐릭터 뒤
+function sDot(P2, x, y, a) { const s = 7.5 * P2.s * 2.2, gr = g.createRadialGradient(x, y, 0, x, y, s); gr.addColorStop(0, rgb(P2.col, a)); gr.addColorStop(0.4, rgb(P2.col, a * 0.8)); gr.addColorStop(1, rgb(P2.col, 0)); g.fillStyle = gr; g.fillRect(x - s, y - s, s * 2, s * 2); }
+function sDraw(ST, which) { for (const [P2, pts] of ST) for (let k = 0; k < pts.length; k++) { const [x, y, z, ph] = pts[k]; if (sLayer(z, ph) !== which) continue; sDot(P2, x, y, (k ? 0.55 - 0.12 * k : 1) * (0.75 + 0.25 * Math.max(0, z))); } }
+function lightShot2(b, f) {
+  night();
+  const warm = prog(b, 196, 206), coneA = 0.2 * prog(b, 172, 175) + 0.1 * warm;
+  if (IMG.cone && !DRY) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = coneA; g.drawImage(tintedImg('cone', IMG.cone, mixC([200, 210, 255], ORANGE, Math.round(warm * 8) / 8)), 0, 0); g.restore(); }
+  for (const d of DUST) glow(d.x * 0.5 + 480, ((d.y - 8 * b) % H + H) % H, d.s * 2, 0.1 * prog(b, 172, 175) * (0.6 + 0.4 * Math.sin(b * 2 + d.ph)));
+  const ga = 0.95 * prog(b, 172.3, 173.8) * (0.85 + 0.15 * imp((b - Math.floor(b)) * SPB, 2.6, 0.35)), skip = P2 => P2.td <= b;
+  const ST = [], dt = 0.045; let done = 0;                      // 이동 중 입자: 지금 점 + 꼬리 4점(각 점 따로 깊이)
+  if (!DRY) for (const P2 of GXL) { if (b < P2.td) continue; if (b >= P2.td + SDUR) { done++; continue; } const pts = []; for (let k = 0; k < 5; k++) { const bk = b - k * dt; if (bk < P2.td) break; pts.push(sPos(P2, bk)); } ST.push([P2, pts]); }
+  const absorbed = done / GXL.length;
+  if (ga > 0) galaxy(GXL, b, 960, 660, { layer: 'back', tilt: 0.26, size: 7, a: ga, spin: LSPIN, skip });
+  sDraw(ST, 'sun');                                           // 층 1: 해 뒤
+  if (absorbed > 0 || b >= 191) { const R = lerp(30, 200, absorbed); g.fillStyle = rgb(ORANGE); g.beginPath(); g.arc(SUNP[0], SUNP[1], R, 0, TAU); g.fill(); glow(SUNP[0], SUNP[1], R * 3, 0.2 + 0.3 * absorbed); }   // 층 2: 해
+  sDraw(ST, 'char');                                          // 층 3: 캐릭터 뒤(뒤통수 쪽)
+  const r = SILB(), J = { sq: 0.012 * Math.sin(TAU * b / 4), sway: 0, ph: f };   // 층 4: 캐릭터 실루엣
+  if (!DRY) { const m = MK.ready; ctxReset(vg); vg.clearRect(0, 0, m.w + 4, m.h + 4); tintTo(vg, layer('ready', 0, 'sil'), [16, 18, 40]); tintTo(vg, layer('ready', 0, 'ink'), [8, 8, 22]); jelly(VER, m.w, m.h, r, J); }
+  else { layer('ready', 0, 'sil'); layer('ready', 0, 'ink'); layer('ready', 0, 'k1'); layer('ready', 0, 'k2'); layer('ready', 0, 'k3'); }
+  if (IMG.s6_rim && !DRY) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.15 + 0.35 * prog(b, 174, 184) + 0.3 * warm; g.drawImage(tintedImg('s6_rim', IMG.s6_rim, mixC([220, 225, 255], ORANGE, Math.round(warm * 8) / 8)), 0, 0); g.restore(); }
+  for (const [tk, key, col] of PARTLIT2) { const a = (0.7 * ez.p2o(prog(b, tk, tk + 1)) + 0.3 * imp((b - tk) * SPB, 2.2, 0.3)) * (1 - 0.4 * absorbed); if (a > 0.01) partGlow('ready', 0, key, col, r, J, a); }
+  if (ga > 0) galaxy(GXL, b, 960, 660, { layer: 'front', tilt: 0.26, size: 7, a: ga, spin: LSPIN, skip });
+  sDraw(ST, 'front');                                         // 층 5: 앞
+  if (b >= 205.5) { const u = prog(b, 205.5, 212), R = lerp(200, 2500, 0.5 * u * u + 0.5 * u * u * u) * (1 + 0.06 * imp((b - 205.5) * SPB, 2.4, 0.3)); g.fillStyle = rgb(ORANGE); g.beginPath(); g.arc(SUNP[0], SUNP[1], R, 0, TAU); g.fill(); glow(SUNP[0], SUNP[1], R * 3, 0.5 * (1 - u)); }   // 마지막 입자를 삼키는 순간 → 바로 커지기 시작
+  if (b >= 211.5) { g.fillStyle = rgb(ORANGE); g.fillRect(0, 0, W, H); }
+}
+
+const DUR20 = [2, 1, 1, 1, 1, 2, 0.5, 0.5, 1, 1, 2, 1, 1, 1, 0.5, 0.5, 1, 1, 1], OXS5 = [0, -160, 160, 0, 120, -120], ENT5 = [[0, 0], [1, 0], [-1, 0], [0, -1]];
+// ½박 샷과 그 앞은 전신만(밝은 얼굴 · 글자와 번갈면 번쩍임이 1초 3쌍에 닿음)
+const SCH56 = (() => { let t = 136; return DUR20.map((d, i) => { let [comp, cut] = DROPS5[(i * 3) % 10]; if (d < 1 || (DUR20[i + 1] < 1 && /face|type|grid|tile/.test(comp))) comp = 'full'; const e = { b0: t, dur: d, comp, cut, ox: /grid|tile|face/.test(comp) ? 0 : OXS5[i % 6], ex: ENT5[i % 4][0], ey: ENT5[i % 4][1] }; t += d; return e; }); })();
+function sec56(b, f) {
+  if (b >= 172) return lightShot2(172 + (b - 172) * (40 / 24), f);   // 빛 구간: 안쪽 40박을 24박에(1.67배속)
+  if (b >= 156) return worldsShot(b, f);
+  const t = (b - Math.floor(b)) * SPB, cam = 1 + 0.05 * (1 - ez.p3o(clamp(t / 0.25))) + (b < 137 ? 0.09 * (1 - ez.p3o(clamp((b - 136) * SPB / 0.3))) : 0);
+  g.save(); g.translate(960, 540); g.scale(cam, cam); g.translate(-960, -540);
+  night(); discs3(b, 136); rings3(b, P.paper);
+  for (const D of DOTS) lightDot(D, b);
+  const E = SCH56.find(e => b >= e.b0 && b < e.b0 + e.dur) || SCH56[SCH56.length - 1], comp = E.comp, cut = E.cut, b0 = E.b0, orbit = !/grid|tile/.test(comp);
+  const ent = 1 - ez.p3o(clamp((b - b0) / 0.35));
+  g.save(); if (orbit) g.translate(E.ox + E.ex * 150 * ent, E.ey * 90 * ent);
+  if (orbit) galaxy(GX5, b, 960, 640, { layer: 'back', tilt: 0.3, size: 30, a: 1 });   // 은하: 아이콘들이 캐릭터 둘레를 돎
+  shot3(comp, cut, b0, b, f, {}, FULLO, K1);
+  if (orbit) galaxy(GX5, b, 960, 640, { layer: 'front', tilt: 0.3, size: 30, a: 1 });
+  g.restore();
+  symConfetti5(b);
+  g.restore();
+}
+
+function draw(f) {
+  g = DRY ? NOOP : G2D; if (!DRY) ctxReset(g);
+  const b = 136 + f / FPB;                                   // 이 페이지 0프레임 = 136박
+  sec56(b, f);
+}
+boot(N, draw, ['grain.png', 'glow.png', 'cone.png', 's6_rim.png'], typeJobs());
+</script>

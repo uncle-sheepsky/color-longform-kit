@@ -1,0 +1,15 @@
+node_modules/
+build/
+out/
+spot/
+gates/
+__pycache__/
+character/*
+!character/README.md
+fonts/*
+!fonts/README.md
+music/VSCO-2-CE-SFZ/
+music/out/
+examples/sample/
+*.log
+.venv/

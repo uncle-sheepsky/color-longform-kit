@@ -1,0 +1,7 @@
+{
+  "name": "MOMO",
+  "title": ["{name}", "IN COLOR"],
+  "part_names": { "k1": "SCARF", "k2": "COAT", "k3": "CHEEK" },
+  "poses": {},
+  "frame_ms": 100
+}

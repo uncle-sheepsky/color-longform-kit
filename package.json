@@ -1,0 +1,9 @@
+{
+  "name": "color-longform-kit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "원하는 캐릭터를 넣어 만드는 80초 가로 롱폼(1920×1080) 템플릿 — WHAT YOUR COLOR.",
+  "license": "CC0-1.0",
+  "dependencies": { "gsap": "3.15.0", "playwright": "1.61.0" }
+}
