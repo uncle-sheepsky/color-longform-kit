@@ -185,7 +185,7 @@ export async function renderWebCodecs({ scenes, music, want, pad, geo, onProgres
       const cv = scenes.frame(f);
       if (small && f >= F0) { sg.drawImage(cv, 0, 0, AW, AH); const px = sg.getImageData(0, 0, AW, AH).data; const [x, w] = profileOf(px, prevPx); xs.push(x); prof.push(w); prevPx = px; }
       if (tracks.wide) await tracks.wide.add(cv);
-      if ((f & 7) === 0) { onProgress({ phase: want.wide ? '16:9 굽는 중' : '세로판 분석 중', done: f - fStart, total: total1, t0 }); await new Promise(r => setTimeout(r, 0)); }
+      if ((f & 7) === 0) { onProgress({ phase: want.wide ? '16:9 굽는 중' : '세로판 분석 중', done: f - fStart, total: total1, t0, src: cv }); await new Promise(r => setTimeout(r, 0)); }
     }
     if (tracks.wide) { onProgress({ phase: '16:9 마무리', done: total1, total: total1, t0 }); out.wide = await tracks.wide.finish(); delete tracks.wide; }
     if (needShort) {                                            // 2차: 창을 옮기며 세로판 굽기(같은 프레임을 다시 그림 = 같은 그림)
@@ -200,7 +200,7 @@ export async function renderWebCodecs({ scenes, music, want, pad, geo, onProgres
         const cv = scenes.frame(F0 + k), [x0, y0, w, h] = cropWindow(cam, k);
         if (tall) { const g = tall.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.fillStyle = `rgb(${pad.join(',')})`; g.fillRect(0, 0, 1080, 1920); g.drawImage(cv, x0, y0, w, h, 0, PAD_Y, IW, IH); await tracks.tall.add(tall); }
         if (feed) { const g = feed.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(cv, x0, y0, w, h, 0, 0, IW, IH); await tracks.feed.add(feed); }
-        if ((k & 7) === 0) { onProgress({ phase: '세로판 굽는 중', done: k, total: NF, t0: t1 }); await new Promise(r => setTimeout(r, 0)); }
+        if ((k & 7) === 0) { onProgress({ phase: '세로판 굽는 중', done: k, total: NF, t0: t1, src: tall || feed }); await new Promise(r => setTimeout(r, 0)); }
       }
       onProgress({ phase: '세로판 마무리', done: NF, total: NF, t0: t1 });
       for (const k of ['tall', 'feed']) if (tracks[k]) { out[k] = await tracks[k].finish(); delete tracks[k]; }
@@ -254,7 +254,7 @@ export async function renderRealtime({ scenes, music, want, pad, geo, onProgress
         if (signal.aborted) { done = true; rej(new DOMException('멈춤', 'AbortError')); return; }
         const t = actx.currentTime - tStart, k = Math.floor(t * FPS);
         if (t >= dur) { done = true; res(); return; }
-        if (k >= 0 && k !== last) { if (last >= 0 && k > last + 1) dropped += k - last - 1; draw(fa + Math.min(k, fb - fa - 1)); if (vtrack.requestFrame) vtrack.requestFrame(); last = k; onProgress({ phase: `${fmt.label} 실시간 녹화 중`, done: k, total: fb - fa, dropped }); }
+        if (k >= 0 && k !== last) { if (last >= 0 && k > last + 1) dropped += k - last - 1; draw(fa + Math.min(k, fb - fa - 1)); if (vtrack.requestFrame) vtrack.requestFrame(); last = k; onProgress({ phase: `${fmt.label} 실시간 녹화 중`, done: k, total: fb - fa, dropped, src: cv }); }
       };
       const raf = () => { step(); if (!done) requestAnimationFrame(raf); };
       requestAnimationFrame(raf);
