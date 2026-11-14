@@ -6,7 +6,7 @@
 유튜브 채널 「아낌없이 주는 두루」의 롱폼 「WHAT YOUR COLOR.」를 만든 코드와 방법 그대로이고, 캐릭터 자리를 여러분의 그림으로 채우게 열어 두었습니다.
 같은 이야기의 20초 세로 숏폼 판은 [color-short-kit](https://github.com/uncle-sheepsky/color-short-kit) 에 있습니다.
 
-- 이 키트로 만든 원본 영상: 롱폼 https://youtu.be/2T3t7NSwQis · 롱폼에서 잘라 낸 세로 숏폼 https://youtu.be/Kh3IdNJEvVM
+- 이 키트로 만든 원본 영상: https://youtu.be/2T3t7NSwQis
 
 ## 설치 없이 브라우저에서 — 그림 1장으로
 **[웹 페이지](https://uncle-sheepsky.github.io/color-longform-kit/web/)** 에 투명 바탕 PNG 한 장을 넣으면, 색을 뽑아 보여 주고(고칠 수 있음) 같은 움직임 · 같은 음악의 영상을 브라우저 안에서 바로 구워 줍니다. Python · ffmpeg · AI 도구가 필요 없고, 그림은 서버로 올라가지 않습니다.
