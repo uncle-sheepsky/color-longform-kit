@@ -8,6 +8,12 @@
 
 - 이 키트로 만든 원본 영상: 롱폼 https://youtu.be/2T3t7NSwQis · 롱폼에서 잘라 낸 세로 숏폼 https://youtu.be/Kh3IdNJEvVM
 
+## 설치 없이 브라우저에서 — 그림 1장으로
+**[웹 페이지](https://uncle-sheepsky.github.io/color-longform-kit/web/)** 에 투명 바탕 PNG 한 장을 넣으면, 색을 뽑아 보여 주고(고칠 수 있음) 같은 움직임 · 같은 음악의 영상을 브라우저 안에서 바로 구워 줍니다. Python · ffmpeg · AI 도구가 필요 없고, 그림은 서버로 올라가지 않습니다.
+- 내려받는 형식: 16:9 가로(80초) · 9:16 세로(34.7초 · 릴스 · 틱톡 · 쇼츠) · 4:5 세로(34.7초 · 인스타 피드)
+- Chrome · Edge 최신판 권장 · 쓰는 법 · 한계 · 로컬에서 여는 법은 [`web/README.md`](web/README.md)
+- 동작을 여러 개 쓰거나 형식 검사 보고서까지 받으려면 아래 Python 판을 쓰세요.
+
 AI(Claude · Codex 등)를 쓴다면 이 저장소를 그대로 주고 아래 프롬프트를 붙여 넣으세요. AI 가 따라갈 단계와 확인 방법은 [`AGENTS.md`](AGENTS.md) 에 있습니다.
 
 ## AI 에게 맡길 때 — 붙여 넣을 프롬프트

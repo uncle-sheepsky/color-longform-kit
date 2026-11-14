@@ -8,6 +8,12 @@ A 20-second vertical short with the same story is in [color-short-kit](https://g
 
 - The original video made with this code: https://youtu.be/2T3t7NSwQis
 
+## In the browser, with one image
+There is also a [web page](https://uncle-sheepsky.github.io/color-longform-kit/web/) that needs no install. Drop in one transparent PNG. It pulls the colors out of your drawing and shows you how it split them, and you can change them there. Then it renders the video right in the browser tab with the same animation and music. Your image stays on your computer.
+- You can download the full 80 seconds at 1920×1080. The vertical cut runs from the drop to the end (34.7 seconds) and comes as 1080×1920 for vertical feeds like Shorts and Reels, or as 1080×1350 for an Instagram post.
+- Use a recent Chrome or Edge. On the computer this kit was built on, the 16:9 and 9:16 videos took about 40 seconds together. Details and known limits are in [`web/README.md`](web/README.md) (in Korean).
+- For several poses, or for the check report, use the Python version below.
+
 If you use an AI coding tool (Claude Code, Codex and so on), give it this repository and paste one of the prompts below. The steps the AI follows, and what it checks after each one, are in [`AGENTS.md`](AGENTS.md). That file is in Korean. AI tools read it fine.
 
 ## What you get
