@@ -2,16 +2,16 @@ color-longform-kit
 
 The code and music in this repository are CC0 1.0 (see LICENSE), and so is the sample character MOMO in examples/.
 
-One file is an exception: web/duru.png is not CC0.
-Duru is the character of the YouTube channel 아낌없이 주는 두루 ("Duru, who gives it all away").
-You may use web/duru.png only to try the web page in web/. Do not redistribute it or use it commercially. Videos made with it fall under the same terms.
-The Duru drawing was made with GPT.
+Two files are exceptions: web/duru.png and web/melon.png are not CC0.
+Duru is the character of the YouTube channel 아낌없이 주는 두루 ("Duru, who gives it all away"), and the melon is a drawing from the same channel.
+You may use these two images only to try the web page in web/. Do not redistribute them or use them commercially. Videos made with them fall under the same terms.
+Both drawings were made with GPT.
 
 ---
 
 이 저장소의 코드와 음악은 CC0 1.0 입니다(LICENSE). examples/ 의 시험 캐릭터 MOMO 도 CC0 입니다.
 
-예외가 하나 있습니다. web/duru.png 는 CC0 가 아닙니다.
-두루는 유튜브 채널 「아낌없이 주는 두루」의 캐릭터입니다.
-web/duru.png 는 web/ 의 웹 페이지를 시험해 보는 데만 쓸 수 있습니다. 다시 배포하거나 상업적으로 쓸 수 없고, 이 그림으로 만든 영상도 같은 조건입니다.
-두루 그림은 GPT 로 만든 그림입니다.
+예외가 둘 있습니다. web/duru.png 와 web/melon.png 는 CC0 가 아닙니다.
+두루는 유튜브 채널 「아낌없이 주는 두루」의 캐릭터이고, 멜론도 같은 채널의 그림입니다.
+두 그림은 web/ 의 웹 페이지를 시험해 보는 데만 쓸 수 있습니다. 다시 배포하거나 상업적으로 쓸 수 없고, 이 그림으로 만든 영상도 같은 조건입니다.
+두 그림 모두 GPT 로 만든 그림입니다.

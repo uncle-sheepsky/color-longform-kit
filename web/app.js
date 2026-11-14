@@ -33,9 +33,11 @@ async function takeImage(url, srcName, preset = null) {
     if (!S.PXF) S.PXF = await loadPXF();
     const im = await loadImage(url);
     const A = await analyze(im, s => status($('st1'), s + '…'));
-    S.A = A; S.srcName = srcName; S.keyOrder = [0, 1, 2]; S.colors = {}; S.partNames = ['', '', '']; S.eyes = null; S.eyePick = []; S.isSample = !!(preset && preset.sample);
+    S.A = A; S.srcName = srcName; S.keyOrder = [0, 1, 2]; S.colors = {}; S.partNames = ['', '', '']; S.eyes = null; S.eyePick = []; S.isSample = !!(preset && preset.sample); S.sampleLabel = (preset && preset.label) || '';
     $('name').value = preset ? preset.name : nameFrom(srcName); $('title1').value = '{name}'; $('title2').value = 'IN COLOR';
     if (preset) S.partNames = presetParts(A, preset.parts);
+    if (preset && preset.colors) S.colors = { ...preset.colors };                      // 예시 그림: 미리 맞춘 색(그림에서 뽑은 그대로면 안 넣음)
+    if (preset && preset.eyes) S.eyes = preset.eyes.map(([fx, fy]) => [Math.round(fx * A.w), Math.round(fy * A.h)]);   // 예시 그림: 두 눈 자리(층 크기 비율)
     status($('st1'), `그림 읽음 · 층 크기 ${A.w}×${A.h}`);
     renderControls();
     await rebuild();
@@ -55,7 +57,12 @@ const drop = $('drop');
 ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) takeImage(URL.createObjectURL(f), f.name); });
 $('sample').addEventListener('click', () => takeImage(new URL('duru.png', import.meta.url).href, 'duru.png',   // 예시 = 두루(CC0 아님 · 시험용 — NOTICE)
-  { name: 'DURU', sample: true, parts: [{ name: 'SCARF', c: [237, 57, 59] }, { name: 'COAT', c: [203, 119, 42] }, { name: 'CHEEK', c: [253, 161, 150] }] }));
+  { name: 'DURU', label: '두루', sample: true, parts: [{ name: 'SCARF', c: [237, 57, 59] }, { name: 'COAT', c: [203, 119, 42] }, { name: 'CHEEK', c: [253, 161, 150] }] }));
+$('sample2').addEventListener('click', () => takeImage(new URL('melon.png', import.meta.url).href, 'melon.png',   // 예시 = 멜론(CC0 아님 · 시험용 — NOTICE)
+  { name: 'MELON', label: '멜론', sample: true,
+    colors: { paper: [234, 246, 178] },                                          // 몸(종이) = 연한 그물 색 → 색 1(초록 껍질 무늬)이 돌아오는 게 보이게. 그대로 두면 종이와 색 1이 같은 초록
+    eyes: [[0.336, 0.577], [0.688, 0.576]],                                      // 자동으로 찾으면 꼭지 두 끝을 눈으로 잡음 → 실제 눈동자 자리
+    parts: [{ name: 'RIND', c: [154, 214, 74] }, { name: 'CHEEK', c: [250, 128, 128] }, { name: 'BLUSH', c: [235, 40, 50] }] }));
 
 // ── 2) 색 · 이름 ──────────────────────────────────────────────────────────────
 const curColor = k => S.colors[k] || (k.startsWith('k') ? S.A.pal0['k' + (S.keyOrder[+k[1] - 1] + 1)] : S.A.pal0[k]);
@@ -218,7 +225,7 @@ $('go').addEventListener('click', async () => {
     }
     const took = `완성 · ${((performance.now() - t0) / 1000).toFixed(0)}초 걸림. `;
     $('bar').value = $('bar').max;
-    if (S.isSample) status($('st4'), took + '두루로 만든 영상은 시험용입니다(다시 배포 · 상업적 이용 불가). 올릴 영상은 내 캐릭터 그림을 넣어 만들어 주세요.');
+    if (S.isSample) status($('st4'), took + `${S.sampleLabel || '예시 그림'}(으)로 만든 영상은 시험용입니다(다시 배포 · 상업적 이용 불가). 올릴 영상은 내 캐릭터 그림을 넣어 만들어 주세요.`);
     else { status($('st4'), took + '소리를 켜고 끝까지 한 번 보세요 — 내 캐릭터답게 보이는지는 직접 보고 판정하는 게 가장 정확합니다.'); $('caption').value = caption(); $('share').hidden = false; }
   } catch (e) { console.error(e); status($('st4'), e.name === 'AbortError' ? '멈췄습니다.' : '만들지 못했습니다: ' + (e.message || e), e.name !== 'AbortError'); }
   finally { S.busy = false; S.rendering = false; S.abort = null; $('go').disabled = false; $('stop').hidden = true; enable('s1', true); enable('s2', true); enable('s3', true); }
