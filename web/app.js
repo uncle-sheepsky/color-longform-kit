@@ -9,9 +9,9 @@ const $ = id => document.getElementById(id);
 const MUSIC_URL = new URL('../music/color_longform.wav', import.meta.url);
 const ORIGINAL = 'https://youtu.be/2T3t7NSwQis';
 const FPS = 30, V0 = 1360;                                       // 세로 영상 = 1360프레임(드롭)부터
-/* 예시 그림(CC0 아님 · 시험용 — NOTICE). colors = 미리 맞춘 칠하는 색 · eyes = 두 눈 자리(층 크기 비율) · parts = 색이 가까운 쪽에 붙일 부위 이름 */
+/* 예시 그림(두루 = CC0 · 멜론 = CC0 아님 · 시험용 — NOTICE). sample: true = 시험용(만든 뒤 설명 문구 칸을 숨김). colors = 미리 맞춘 칠하는 색 · eyes = 두 눈 자리(층 크기 비율) · parts = 색이 가까운 쪽에 붙일 부위 이름 */
 const PRESETS = {
-  duru: { file: 'duru.png', name: 'DURU', label: '두루', sample: true, parts: [{ name: 'SCARF', c: [237, 57, 59] }, { name: 'COAT', c: [203, 119, 42] }, { name: 'CHEEK', c: [253, 161, 150] }] },
+  duru: { file: 'duru.png', name: 'DURU', label: '두루', sample: false, parts: [{ name: 'SCARF', c: [237, 57, 59] }, { name: 'COAT', c: [203, 119, 42] }, { name: 'CHEEK', c: [253, 161, 150] }] },
   melon: { file: 'melon.png', name: 'MELON', label: '멜론', sample: true,
     colors: { paper: [234, 246, 178] },                         // 몸(종이) = 연한 그물 색 → 색 1(초록 껍질 무늬)이 돌아오는 게 보이게. 그대로 두면 종이와 색 1이 같은 초록
     eyes: [[0.336, 0.577], [0.688, 0.576]],                     // 자동으로 찾으면 꼭지 두 끝을 눈으로 잡음 → 실제 눈동자 자리
